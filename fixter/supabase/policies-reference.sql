@@ -1,0 +1,1 @@
+-- DEPRECATED: usa fix-rls.sql (script completo y listo para ejecutar)
