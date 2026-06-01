@@ -27,18 +27,19 @@ FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = seller_id);
 
-CREATE POLICY "Owners update own listings"
-ON public.listings
-FOR UPDATE
-TO authenticated
-USING (auth.uid() = seller_id)
-WITH CHECK (auth.uid() = seller_id);
+-- UPDATE: gestionada en create-reviews-schema.sql (incluye restricciones sobre
+-- confirmed_buyer_id). Ejecuta ese script después de éste para que la policy
+-- quede correcta. El DROP IF EXISTS de la línea 13 limpia versiones antiguas.
 
 CREATE POLICY "Owners delete own listings"
 ON public.listings
 FOR DELETE
 TO authenticated
 USING (auth.uid() = seller_id);
+
+-- Permisos de rol (necesarios además de RLS)
+GRANT SELECT ON public.listings TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.listings TO authenticated;
 
 -- -----------------------------------------------------------------------------
 -- PROFILES (por si el registro también falla por RLS)

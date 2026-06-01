@@ -89,8 +89,10 @@ export async function createListing(
     category: input.category,
     brand: input.brand.trim(),
     model: input.model.trim(),
+    condition: input.condition,
     location: input.location.trim(),
     images: imageUrls,
+    status: "active",
   };
 
   const { error } = await supabase.from("listings").insert(payload);
@@ -140,6 +142,10 @@ export function validatePublishInput(
 
   if (!input.category) {
     return "Selecciona una categoría.";
+  }
+
+  if (!input.condition) {
+    return "Selecciona la condición de la pieza.";
   }
 
   if (imageCount < 1) {

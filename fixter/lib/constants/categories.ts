@@ -12,6 +12,13 @@ export const LISTING_CATEGORIES = [
   "Otros",
 ] as const;
 
+export const LISTING_CONDITIONS = [
+  "Nuevo",
+  "Como nuevo",
+  "Bueno",
+  "Aceptable",
+] as const;
+
 export const LISTING_IMAGES_BUCKET = "listing-images" as const;
 
 export const MAX_LISTING_IMAGES = 8;

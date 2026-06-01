@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { ensureUserProfile } from "@/lib/profiles";
 import { getSupabase } from "@/lib/supabase";
@@ -11,9 +11,10 @@ import { authInputClassName, authLabelClassName } from "./form-styles";
 export function RegisterForm() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReactNode>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -24,19 +25,60 @@ export function RegisterForm() {
     setLoading(true);
 
     try {
+      const usernameValue = username.trim();
+
+      if (!/^[a-z0-9_]{3,20}$/.test(usernameValue)) {
+        setError(
+          "El nombre de usuario debe tener entre 3 y 20 caracteres; solo letras minúsculas, números y guiones bajos.",
+        );
+        return;
+      }
+
       const supabase = getSupabase();
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
           data: {
+            username: usernameValue,
             full_name: name.trim(),
           },
         },
       });
 
       if (signUpError) {
-        setError(getAuthErrorMessage(signUpError));
+        if (signUpError.message.toLowerCase().includes("user already registered")) {
+          setError(
+            <>
+              Este correo ya está registrado.{" "}
+              <Link
+                href="/login"
+                className="font-medium underline underline-offset-2 hover:text-red-900"
+              >
+                ¿Quieres iniciar sesión?
+              </Link>
+            </>
+          );
+        } else {
+          setError(getAuthErrorMessage(signUpError));
+        }
+        return;
+      }
+
+      // When email confirmation is on, Supabase silently "succeeds" for existing
+      // emails but returns identities: [] instead of an error (anti-enumeration).
+      if (data.user?.identities?.length === 0) {
+        setError(
+          <>
+            Este correo ya está registrado.{" "}
+            <Link
+              href="/login"
+              className="font-medium underline underline-offset-2 hover:text-red-900"
+            >
+              ¿Quieres iniciar sesión?
+            </Link>
+          </>
+        );
         return;
       }
 
@@ -115,6 +157,30 @@ export function RegisterForm() {
           className={authInputClassName}
           placeholder="tu@email.com"
         />
+      </div>
+
+      <div>
+        <label htmlFor="username" className={authLabelClassName}>
+          Nombre de usuario
+        </label>
+        <input
+          id="username"
+          type="text"
+          name="username"
+          autoComplete="username"
+          required
+          minLength={3}
+          maxLength={20}
+          pattern="^[a-z0-9_]+$"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          disabled={loading}
+          className={authInputClassName}
+          placeholder="tu_usuario"
+        />
+        <p className="mt-2 text-sm text-zinc-500">
+          Solo letras minúsculas, números y _
+        </p>
       </div>
 
       <div>

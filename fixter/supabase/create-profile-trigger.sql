@@ -1,10 +1,11 @@
 -- =============================================================================
 -- Fixter: perfiles automáticos para auth.users
+-- Requiere: profiles.id = auth.users.id
 -- Ejecuta en Supabase → SQL Editor
 -- =============================================================================
 
--- 1) Rellena perfiles para usuarios que ya existen pero no tienen fila en profiles
-INSERT INTO public.profiles (id, full_name)
+-- 1) Rellena perfiles para usuarios existentes sin fila en profiles
+INSERT INTO public.profiles (id, username)
 SELECT
   u.id,
   COALESCE(
@@ -17,12 +18,7 @@ WHERE NOT EXISTS (
   SELECT 1 FROM public.profiles AS p WHERE p.id = u.id
 );
 
--- Si la columna full_name no existe, usa solo esto:
--- INSERT INTO public.profiles (id)
--- SELECT u.id FROM auth.users u
--- WHERE NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id);
-
--- 2) Trigger: crear perfil al registrarse un usuario nuevo
+-- 2) Trigger: crear perfil al registrarse
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -30,7 +26,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name)
+  INSERT INTO public.profiles (id, username)
   VALUES (
     NEW.id,
     COALESCE(

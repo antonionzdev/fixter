@@ -5,7 +5,7 @@ export function getSellerDisplayName(
     return "Vendedor";
   }
 
-  const keys = ["full_name", "name", "username", "display_name"];
+  const keys = ["username", "full_name", "name", "display_name"];
 
   for (const key of keys) {
     const value = profile[key];

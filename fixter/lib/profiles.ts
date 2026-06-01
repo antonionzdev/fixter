@@ -3,45 +3,55 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 async function insertProfile(
   supabase: SupabaseClient,
   userId: string,
-  displayName?: string,
+  metadata?: { username?: string; full_name?: string },
+  fallbackName?: string,
 ): Promise<void> {
-  const row: Record<string, string> = { id: userId };
-  if (displayName) {
-    row.full_name = displayName;
+  const name = fallbackName?.trim() || "Usuario";
+
+  const profileRow: Record<string, string> = { id: userId };
+
+  if (metadata?.username?.trim()) {
+    profileRow.username = metadata.username.trim();
   }
 
-  const { error: insertError } = await supabase.from("profiles").insert(row);
-
-  if (!insertError) {
-    return;
+  if (metadata?.full_name?.trim()) {
+    profileRow.full_name = metadata.full_name.trim();
   }
 
-  if (insertError.message.includes("full_name") && displayName) {
-    const { error: minimalError } = await supabase
-      .from("profiles")
-      .insert({ id: userId });
+  const candidates: Record<string, string>[] = [
+    profileRow,
+    { id: userId, username: name },
+    { id: userId, full_name: name },
+    { id: userId },
+  ];
 
-    if (!minimalError || minimalError.code === "23505") {
+  for (const row of candidates) {
+    const { error } = await supabase.from("profiles").insert(row);
+
+    if (!error) {
       return;
     }
 
-    throw new Error(
-      minimalError.message || "No se pudo crear el perfil de usuario.",
-    );
-  }
+    if (error.code === "23505") {
+      return;
+    }
 
-  if (insertError.code === "23505") {
-    return;
-  }
+    const isColumnError =
+      error.message.includes("column") ||
+      error.message.includes("Could not find");
 
-  throw new Error(
-    insertError.message || "No se pudo crear el perfil de usuario.",
-  );
+    if (isColumnError) {
+      continue;
+    }
+
+    throw new Error(error.message || "No se pudo crear el perfil de usuario.");
+  }
 }
 
 /**
  * Garantiza que exista una fila en `profiles` para el usuario.
- * listings.seller_id tiene FK → profiles.id
+ * Requiere: profiles.id = auth.users.id (patrón estándar de Supabase).
+ * listings.seller_id → profiles.id
  */
 export async function ensureUserProfile(
   supabase: SupabaseClient,
@@ -63,18 +73,20 @@ export async function ensureUserProfile(
     return;
   }
 
-  const displayName =
-    (user.user_metadata?.full_name as string | undefined)?.trim() ||
-    user.email?.split("@")[0] ||
-    "Usuario";
+  const metadata = user.user_metadata as
+    | { username?: string; full_name?: string }
+    | undefined;
 
-  await insertProfile(supabase, user.id, displayName);
+  const displayName =
+    metadata?.full_name?.trim() || user.email?.split("@")[0] || "Usuario";
+
+  await insertProfile(supabase, user.id, metadata, displayName);
 }
 
 export async function ensureUserProfileById(
   supabase: SupabaseClient,
   userId: string,
-  metadata?: { full_name?: string },
+  metadata?: { username?: string; full_name?: string },
 ): Promise<void> {
   const { data: existing, error: selectError } = await supabase
     .from("profiles")
@@ -92,5 +104,5 @@ export async function ensureUserProfileById(
     return;
   }
 
-  await insertProfile(supabase, userId, metadata?.full_name?.trim());
+  await insertProfile(supabase, userId, metadata, metadata?.full_name?.trim());
 }
