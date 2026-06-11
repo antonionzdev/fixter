@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/layout/site-header";
 import { createAuthServerSupabase } from "@/lib/supabase-server-auth";
+import { createServiceSupabase } from "@/lib/supabase-service";
 import ProfileEditForm from "@/components/profile/profile-edit-form";
 import type { PublicProfile } from "@/lib/types/profile";
 
@@ -21,7 +22,10 @@ export default async function ProfileEditPage() {
     redirect("/login?redirect=/profile/edit");
   }
 
-  const { data, error } = await supabase
+  // phone es PII con SELECT revocado para el rol authenticated. El propietario
+  // lee su propia fila (incluido phone) vía service_role, acotado a su user.id.
+  const serviceSupabase = createServiceSupabase();
+  const { data, error } = await serviceSupabase
     .from("profiles")
     .select("id, username, full_name, avatar_url, bio, location, phone, created_at")
     .eq("id", user.id)

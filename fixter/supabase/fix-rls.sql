@@ -13,12 +13,26 @@ DROP POLICY IF EXISTS "Authenticated insert own listings" ON public.listings;
 DROP POLICY IF EXISTS "Owners update own listings" ON public.listings;
 DROP POLICY IF EXISTS "Owners delete own listings" ON public.listings;
 
--- Cualquiera puede ver anuncios (home / marketplace)
-CREATE POLICY "Public read listings"
+-- Anuncios activos visibles para todos
+CREATE POLICY "Anuncios activos son públicos"
 ON public.listings
 FOR SELECT
 TO anon, authenticated
-USING (true);
+USING (status = 'active');
+
+-- El vendedor puede ver todos sus propios anuncios (activos y vendidos)
+CREATE POLICY "listings_select_seller"
+ON public.listings
+FOR SELECT
+TO authenticated
+USING (auth.uid() = seller_id);
+
+-- El comprador confirmado puede ver el anuncio aunque esté vendido
+CREATE POLICY "listings_select_confirmed_buyer"
+ON public.listings
+FOR SELECT
+TO authenticated
+USING (auth.uid() = confirmed_buyer_id);
 
 -- Solo usuarios autenticados; seller_id debe ser su propio auth.uid()
 CREATE POLICY "Authenticated insert own listings"

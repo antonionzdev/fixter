@@ -55,7 +55,7 @@ export function LoadMoreButton({ initialListings, initialCursor, filters }: Prop
 
     let query = supabase
       .from("listings")
-      .select(`${FIELDS}, profiles!seller_id(*)`)
+      .select(`${FIELDS}, profiles!seller_id(id, username, avatar_url, full_name, location)`)
       .eq("status", "active")
       .lt("created_at", cursor)
       .order("created_at", { ascending: false })
@@ -91,7 +91,7 @@ export function LoadMoreButton({ initialListings, initialCursor, filters }: Prop
 
   return (
     <>
-      <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-5 lg:gap-6">
+      <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-4 lg:grid-cols-4 lg:gap-4">
         {allListings.map((listing) => (
           <li key={listing.id}>
             <ProductCard listing={listing} />

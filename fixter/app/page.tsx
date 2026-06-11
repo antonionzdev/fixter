@@ -18,7 +18,6 @@ function getString(v: string | string[] | undefined): string {
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
 
-  // Parse URL search params into a ListingFilters object
   const specsEntries: Record<string, string> = {};
   Object.entries(params).forEach(([key, val]) => {
     if (key.startsWith("specs_") && typeof val === "string" && val) {
@@ -61,46 +60,65 @@ export default async function Home({ searchParams }: HomeProps) {
 
         {/* ── Listings ──────────────────────────────────────────────────── */}
         <section className="px-4 py-10 sm:px-6 sm:py-12">
-          <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-7xl">
 
-            {/* Vistos recientemente — solo visible si el usuario tiene historial en localStorage */}
+            {/* Vistos recientemente — spanning full width */}
             <RecentlyViewedSection />
 
-            {/* Header row */}
-            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-xl font-medium tracking-tight text-[#111111]">
-                {hasActiveFilters ? "Resultados" : "Últimos anuncios"}
-              </h2>
-            </div>
+            {/* Layout: sidebar en desktop, apilado en móvil */}
+            <div className="flex gap-8 lg:gap-10">
 
-            {/* Filters (client component wrapped in Suspense for useSearchParams) */}
-            <Suspense fallback={null}>
-              <SearchFilters initialFilters={filters} />
-            </Suspense>
+              {/* ── Sidebar filtros — solo desktop ─────────────────────── */}
+              <aside className="hidden w-52 shrink-0 lg:block xl:w-56">
+                <div className="sticky top-20 max-h-[calc(100dvh-5.5rem)] overflow-y-auto pr-1">
+                  <p className="mb-3 text-sm font-semibold text-[var(--color-gray-900)]">Filtros</p>
+                  <Suspense fallback={null}>
+                    <SearchFilters initialFilters={filters} />
+                  </Suspense>
+                </div>
+              </aside>
 
-            {listings.length === 0 ? (
-              <p className="mt-4 rounded-xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center text-sm text-gray-500">
-                {hasActiveFilters ? (
-                  <>No hay anuncios que coincidan con tu búsqueda.</>
+              {/* ── Contenido principal ────────────────────────────────── */}
+              <div className="min-w-0 flex-1">
+                <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="text-xl font-semibold tracking-tight text-[#111111]">
+                    {hasActiveFilters ? "Resultados" : "Últimos anuncios"}
+                  </h2>
+                </div>
+
+                {/* Filtros móvil (drawer) — ocultos en desktop */}
+                <div className="mb-4 lg:hidden">
+                  <Suspense fallback={null}>
+                    <SearchFilters initialFilters={filters} />
+                  </Suspense>
+                </div>
+
+                {listings.length === 0 ? (
+                  <p className="mt-4 rounded-xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center text-sm text-gray-500">
+                    {hasActiveFilters ? (
+                      <>No hay anuncios que coincidan con tu búsqueda.</>
+                    ) : (
+                      <>
+                        Aún no hay anuncios publicados.{" "}
+                        <Link
+                          href="/publish"
+                          className="font-medium text-[#111111] underline-offset-2 hover:underline"
+                        >
+                          Sé el primero en publicar
+                        </Link>
+                      </>
+                    )}
+                  </p>
                 ) : (
-                  <>
-                    Aún no hay anuncios publicados.{" "}
-                    <Link
-                      href="/publish"
-                      className="font-medium text-[#111111] underline-offset-2 hover:underline"
-                    >
-                      Sé el primero en publicar
-                    </Link>
-                  </>
+                  <LoadMoreButton
+                    key={JSON.stringify(filters)}
+                    initialListings={listings}
+                    initialCursor={nextCursor}
+                    filters={filters}
+                  />
                 )}
-              </p>
-            ) : (
-              <LoadMoreButton
-                initialListings={listings}
-                initialCursor={nextCursor}
-                filters={filters}
-              />
-            )}
+              </div>
+            </div>
           </div>
         </section>
       </main>

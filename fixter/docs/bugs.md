@@ -2,71 +2,90 @@
 
 ---
 
-## Bugs corregidos
+## Sesión 2026-06-02
 
-### BUG 1 — `ensureUserProfileById` pasaba tipos incorrectos ✓ (2026-05-31)
-**Archivo**: `lib/profiles.ts:107`
-Pasaba `metadata?.full_name?.trim()` (string) como tercer argumento de `insertProfile`,
-que espera `{ username?, full_name? }`.
-**Fix**: pasa `metadata` completo + `metadata?.full_name?.trim()` como `fallbackName`.
+No se encontraron bugs nuevos en esta sesión.
 
-### BUG 2 — Ruta de editar anuncio no existía ✓ (2026-05-31)
-**Archivo**: `app/dashboard/ListingActions.tsx`
-Enlace apuntaba a `/listings/{id}/edit` → 404.
-**Fix**: construido `app/listings/[id]/edit/page.tsx` + `components/listings/edit-listing-form.tsx`.
-Server Component verifica sesión y propiedad. Redirige a `/dashboard` si no es el vendedor.
-
-### BUG 3 — Double-fetch en `generateMetadata` ✓ (2026-05-31)
-**Archivos**: `app/listings/[id]/page.tsx`, `app/profile/[username]/page.tsx`
-`getListingById` y `getProfileByUsername` se llamaban dos veces por request.
-**Fix**: `cache()` de React a nivel de módulo deduplica la query en el mismo request.
-
-### BUG 4 — Imágenes huérfanas en Storage ✓ (2026-05-31)
-**Archivo**: `components/listings/publish-form.tsx`
-Upload antes del INSERT sin cleanup si fallaba.
-**Fix**: `uploadedPaths[]` acumula paths; si falla upload o INSERT → `storage.remove(uploadedPaths)`.
-
-### BUG 5 — Inyección en filtro de búsqueda ✓ (2026-05-31)
-**Archivo**: `lib/listings-queries.ts`
-String de usuario interpolado directamente en `.or()` de PostgREST.
-**Fix**: `filters.search.replace(/[,()]/g, "")` elimina delimitadores antes de interpolar.
+**Construido en esta sesión:**
+- Sistema de valoraciones (`reviews` + `confirmed_buyer_id` en `listings`)
+- Datos de prueba (`supabase/seed.sql`)
+- Paginación cursor-based en home (botón "Cargar más")
+- Sección "Vistos recientemente" en home (localStorage)
 
 ---
 
-## Discrepancias corregidas
+## Sesión 2026-06-03 — Revisión preventiva
 
-### MAX_IMAGES unificado ✓ (2026-05-31)
-`publish-form.tsx` tenía `const MAX_IMAGES = 6` local.
-**Fix**: importa `MAX_LISTING_IMAGES = 8` de `lib/constants/categories.ts`. Límite efectivo: 8.
+### B-1 · `publish-form.tsx` — Precio 0 permitido por bug de validación
 
-### `condition` faltaba en `ListingRow` ✓ (2026-05-31)
-**Fix**: `condition: string | null` añadido a `ListingRow` y a `LISTING_FIELDS`.
-
----
-
-## Comportamientos especiales del sistema de valoraciones
-
-### ReviewFormModal no usa router.refresh() tras el INSERT
-La card de compra (`PurchaseCard`) actualiza su estado local `review` directamente tras el INSERT exitoso. No hace `router.refresh()` — el cambio es optimista y no requiere re-fetch del Server Component.
-
-### getReviewSummary carga todos los ratings sin LIMIT
-`lib/profile-queries.ts:getReviewSummary` trae todos los `rating` de la tabla y calcula el promedio en Node. Con volumen alto debería delegarse a una RPC de Postgres. Pendiente optimizar (no urgente en MVP).
-
-### add-reviews-and-profile-fields.sql obsoleto
-Archivo de migración anterior que tiene policies permisivas (UPDATE/DELETE en reviews) y sin verificación de `confirmed_buyer_id`. No ejecutar — está supersedido por `create-reviews-schema.sql`.
+**Severidad:** Media  
+**Archivos:** `components/listings/publish-form.tsx:199`, `components/listings/publish-form.tsx:403`  
+**Descripción:** La validación de precio usaba `!price`, que es `false` para `"0"` (truthy en JS). El atributo HTML tenía `min="0"`. Un vendedor podía publicar un anuncio con precio 0.  
+**Corrección:** Validación cambiada a `Number(price) <= 0`; atributo HTML a `min="0.01"`.  
+**Estado:** Resuelto.
 
 ---
 
-## Discrepancias conocidas (sin corregir)
+### B-2 · `app/messages/layout.tsx` — Query de mensajes sin límite de filas
 
-### `lib/constants/categories.ts` no es fuente de verdad del schema
-Los componentes definen sus propios arrays con slugs (`"pantallas"`, `"baterias"`).
-`constants/categories.ts` tiene display names (`"Pantalla"`, `"Batería"`).
-Los slugs son los que llegan a la DB — nunca usar los display names en queries.
+**Severidad:** Media  
+**Archivo:** `app/messages/layout.tsx:57`  
+**Descripción:** La query que carga mensajes para el sidebar de mensajes no tenía `.limit()`. En cuentas con muchas conversaciones podría cargar miles de filas en cada render del layout.  
+**Corrección:** Añadido `.limit(500)` a la query.  
+**Estado:** Resuelto.
 
-### `lib/listings.ts` es dead code
-`uploadListingImages()`, `createListing()`, `validatePublishInput()` no se importan
-en `publish-form.tsx` — el formulario tiene lógica inline propia.
+---
 
-### `image-upload-field.tsx` es dead code
-`components/listings/image-upload-field.tsx` no se importa en ningún archivo.
+### B-3 · `supabase/fix-rls.sql` — Policy SELECT de listings con `USING (true)`
+
+**Severidad:** Media  
+**Archivo:** `supabase/fix-rls.sql:17`  
+**Descripción:** El archivo tenía una sola policy `USING (true)` para SELECT en `listings`, exponiendo anuncios vendidos en home/búsqueda si alguien ejecutaba el script en un entorno nuevo. La policy correcta (split en 3) ya estaba en producción en `security-fixes-2026-06-03.sql`.  
+**Corrección:** Reemplazada por las tres policies que reflejan el estado de producción: `status = 'active'` (público), `seller_id = uid` (vendedor), `confirmed_buyer_id = uid` (comprador confirmado).  
+**Estado:** Resuelto (archivo actualizado; producción no se vio afectada).
+
+---
+
+### B-4 · `hooks/useOffers.ts` — Contador diario de ofertas usa reloj del cliente
+
+**Severidad:** Media  
+**Archivo:** `hooks/useOffers.ts:128`  
+**Descripción:** `getDailyUsed()` calculaba la ventana de 24h con `Date.now()` del navegador, mientras que el trigger `trg_validate_offer` usa `now()` de PostgreSQL. La discrepancia de zona horaria podía hacer que el contador en UI mostrara un número diferente al que aplica el trigger.  
+**Corrección:** Creada función RPC `get_daily_offer_count()` (SECURITY DEFINER, usa `now()` del servidor). `getDailyUsed()` ahora llama `supabase.rpc("get_daily_offer_count")`.  
+**Estado:** Resuelto. RPC aplicada a producción.
+
+---
+
+### B-5 · `accepted-offer-price.tsx` — `.maybeSingle()` sin `.limit(1)` previo
+
+**Severidad:** Baja  
+**Archivo:** `components/listings/accepted-offer-price.tsx:33`  
+**Descripción:** La query usaba `.maybeSingle()` sin `.limit(1)`. Si hubiera más de una oferta aceptada para el mismo listing (datos inconsistentes no impedidos por constraint DB), la query lanzaría un error en lugar de devolver la primera.  
+**Corrección:** Añadido `.limit(1)` antes de `.maybeSingle()`.  
+**Estado:** Resuelto.
+
+---
+
+## Discrepancias conocidas (pre-existentes)
+
+### D-1 · `lib/listings.ts` — Dead code
+
+`uploadListingImages()`, `createListing()` y `validatePublishInput()` exportados en `lib/listings.ts` no se usan en ningún sitio. `publish-form.tsx` realiza el upload e insert inline.
+
+**Estado:** Sin resolver. No afecta al funcionamiento.
+
+---
+
+### D-2 · `components/listings/image-upload-field.tsx` — Dead code
+
+El componente `ImageUploadField` no se importa en ningún sitio del proyecto.
+
+**Estado:** Sin resolver. No afecta al funcionamiento.
+
+---
+
+### D-3 · `shipping_available` en publish-form.tsx vs schema
+
+`publish-form.tsx` inserta el campo `shipping_available` en la tabla `listings`, pero ese campo no está listado en el schema de CLAUDE.md. Puede ser que exista la columna en la DB pero no esté documentada, o que Supabase lo ignore silenciosamente.
+
+**Estado:** Sin verificar. Investigar si la columna existe en la tabla real antes de confiar en su valor.

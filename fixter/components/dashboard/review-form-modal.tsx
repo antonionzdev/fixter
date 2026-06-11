@@ -14,6 +14,10 @@ const RATING_LABELS: Record<number, string> = {
 type ReviewFormModalProps = {
   listingId: string;
   reviewedId: string;
+  reviewedUsername?: string;
+  subtitle?: string;
+  commentPlaceholder?: string;
+  skippable?: boolean;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (review: { rating: number; comment: string | null }) => void;
@@ -22,6 +26,10 @@ type ReviewFormModalProps = {
 export function ReviewFormModal({
   listingId,
   reviewedId,
+  reviewedUsername,
+  subtitle,
+  commentPlaceholder,
+  skippable,
   isOpen,
   onClose,
   onSuccess,
@@ -96,7 +104,9 @@ export function ReviewFormModal({
         <div className="px-5 pb-6 pt-5">
           {/* Header */}
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-semibold text-zinc-900">Valorar compra</h2>
+            <h2 className="text-base font-semibold text-zinc-900">
+              {reviewedUsername ? `Valora a ${reviewedUsername}` : "Valorar compra"}
+            </h2>
             <button
               type="button"
               onClick={handleClose}
@@ -108,6 +118,10 @@ export function ReviewFormModal({
               </svg>
             </button>
           </div>
+
+          {subtitle && (
+            <p className="mt-2 text-sm text-zinc-500">{subtitle}</p>
+          )}
 
           {/* Stars */}
           <div className="mt-5">
@@ -166,7 +180,7 @@ export function ReviewFormModal({
               onChange={(e) => setComment(e.target.value)}
               maxLength={1000}
               rows={3}
-              placeholder="Describe tu experiencia con el vendedor…"
+              placeholder={commentPlaceholder ?? "Describe tu experiencia con el vendedor…"}
               className="mt-2 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none"
             />
             <p className="mt-1 text-right text-xs text-zinc-400">
@@ -196,7 +210,7 @@ export function ReviewFormModal({
               disabled={submitting}
               className="flex-1 rounded-xl border border-zinc-200 px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 sm:flex-none"
             >
-              Cancelar
+              {skippable ? "Omitir por ahora" : "Cancelar"}
             </button>
           </div>
         </div>

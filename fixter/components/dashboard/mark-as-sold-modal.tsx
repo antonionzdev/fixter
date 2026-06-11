@@ -15,7 +15,7 @@ type MarkAsSoldModalProps = {
   listingTitle: string;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (confirmedBuyerId: string | null, buyerUsername: string | null) => void;
 };
 
 export function MarkAsSoldModal({
@@ -43,10 +43,13 @@ export function MarkAsSoldModal({
     setLoadingBuyers(true);
     try {
       const supabase = getSupabase();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setError("Tu sesión ha expirado. Vuelve a iniciar sesión."); return; }
       const { data, error: queryError } = await supabase
         .from("conversations")
         .select("buyer_id, buyer:profiles!buyer_id(username, avatar_url)")
-        .eq("listing_id", listingId);
+        .eq("listing_id", listingId)
+        .eq("seller_id", user.id);
 
       if (queryError) throw queryError;
 
@@ -90,6 +93,9 @@ export function MarkAsSoldModal({
       }
 
       const confirmedBuyerId = selectedBuyerId === "outside" ? null : selectedBuyerId;
+      const selectedBuyer = confirmedBuyerId
+        ? buyers.find((b) => b.id === confirmedBuyerId) ?? null
+        : null;
 
       const { data, error: updateError } = await supabase
         .from("listings")
@@ -102,7 +108,7 @@ export function MarkAsSoldModal({
       if (updateError) throw updateError;
       if (!data) throw new Error("No se pudo actualizar el anuncio. Comprueba que eres el vendedor.");
 
-      onSuccess();
+      onSuccess(confirmedBuyerId, selectedBuyer?.username ?? null);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al confirmar la venta.");

@@ -75,7 +75,7 @@ export async function getLatestListings(
 
   let withProfilesQuery = supabase
     .from("listings")
-    .select(`${LISTING_FIELDS}, ${PROFILE_JOIN} (*)`)
+    .select(`${LISTING_FIELDS}, ${PROFILE_JOIN} (id, username, avatar_url, full_name, location)`)
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(limit);

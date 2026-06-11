@@ -92,7 +92,7 @@ export function ContactSellerButton({ listingId, sellerId }: Props) {
   }
 
   if (authState.status === "loading") {
-    return <div className="h-[50px] w-full animate-pulse rounded-xl bg-zinc-100" />;
+    return <div className="h-[56px] w-full animate-pulse rounded-xl bg-zinc-100" />;
   }
 
   if (authState.status === "is-seller") {
@@ -104,7 +104,7 @@ export function ContactSellerButton({ listingId, sellerId }: Props) {
       <button
         type="button"
         onClick={() => router.push(`/login?redirect=/listings/${listingId}`)}
-        className="w-full rounded-xl bg-zinc-900 py-3.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+        className="w-full rounded-xl bg-zinc-950 py-4 text-base font-semibold text-white transition-[opacity,transform] duration-200 ease-out hover:opacity-90 active:scale-[0.97]"
       >
         Contactar con el vendedor
       </button>
@@ -117,7 +117,7 @@ export function ContactSellerButton({ listingId, sellerId }: Props) {
         type="button"
         onClick={handleContact}
         disabled={isCreating}
-        className="w-full rounded-xl bg-zinc-900 py-3.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-xl bg-zinc-950 py-4 text-base font-semibold text-white transition-[opacity,transform] duration-200 ease-out hover:opacity-90 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {isCreating ? "Iniciando conversación…" : "Contactar con el vendedor"}
       </button>

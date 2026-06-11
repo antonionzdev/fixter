@@ -127,9 +127,9 @@ function paramsToFilters(params: URLSearchParams): {
 // ---------------------------------------------------------------------------
 
 const inputCls =
-  "block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-[#111111] outline-none transition placeholder:text-gray-400 focus:border-[#FF6B2B] focus:ring-2 focus:ring-[#FF6B2B]/10";
+  "block w-full rounded-[var(--radius-md)] border border-[var(--color-gray-200)] bg-white px-3 py-2 text-sm text-[var(--color-gray-900)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-[var(--color-gray-400)] focus:border-[var(--color-brand-orange)] focus:shadow-[0_0_0_3px_rgb(255_107_43_/_0.10)]";
 
-const labelCls = "mb-1 block text-xs font-medium text-[#A8A29E] uppercase tracking-wide";
+const labelCls = "mb-1 block text-xs font-medium text-[var(--color-gray-600)]";
 
 // ---------------------------------------------------------------------------
 // COMPONENT
@@ -143,7 +143,6 @@ export default function SearchFilters({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Local state — initialised from current URL params
   const parsed = paramsToFilters(searchParams);
   const [search,    setSearch]    = useState(parsed.search);
   const [category,  setCategory]  = useState(parsed.category);
@@ -152,19 +151,27 @@ export default function SearchFilters({
   const [priceMin,  setPriceMin]  = useState(parsed.priceMin);
   const [priceMax,  setPriceMax]  = useState(parsed.priceMax);
   const [specs,     setSpecs]     = useState<Record<string, string>>(parsed.specs);
+  const [open,      setOpen]      = useState(false);
 
-  // Collapsible panel on mobile
-  const [open, setOpen] = useState(false);
-
-  // Specs count to show a badge on the toggle button
   const activeSpecsCount = Object.values(specs).filter(Boolean).length;
   const hasFilters =
     !!(search || category || model || condition || priceMin || priceMax || activeSpecsCount);
 
-  // Reset specs when category changes
+  // Sincroniza el estado del formulario con la URL cuando cambia (navegación,
+  // botón atrás, links externos). Sin esto, el formulario puede mostrar valores
+  // distintos a los filtros realmente activos.
+  const searchParamsStr = searchParams.toString();
   useEffect(() => {
-    setSpecs({});
-  }, [category]);
+    const p = paramsToFilters(searchParams);
+    setSearch(p.search);
+    setCategory(p.category);
+    setModel(p.model);
+    setCondition(p.condition);
+    setPriceMin(p.priceMin);
+    setPriceMax(p.priceMax);
+    setSpecs(p.specs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParamsStr]);
 
   const activeSpecFields = category ? (CATEGORY_SPECS[category] ?? []) : [];
 
@@ -200,7 +207,6 @@ export default function SearchFilters({
     setOpen(false);
   }
 
-  // Active filter pills for the summary bar
   const filterLabels: string[] = [];
   if (search)    filterLabels.push(`"${search}"`);
   if (category)  filterLabels.push(CATEGORIES.find(c => c.value === category)?.label ?? category);
@@ -211,19 +217,29 @@ export default function SearchFilters({
   Object.entries(specs).forEach(([, v]) => { if (v) filterLabels.push(v); });
 
   return (
-    <div className="mb-8">
-      {/* ── Toggle bar ───────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="mb-6 lg:mb-0">
+      {/* ── Backdrop móvil ──────────────────────────────────────────────── */}
+      <div
+        aria-hidden="true"
+        className={`fixed inset-0 z-40 bg-black/30 transition-opacity duration-300 lg:hidden ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={() => setOpen(false)}
+      />
+
+      {/* ── Toggle bar — solo móvil ─────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2 lg:hidden">
         <button
           id="filter-toggle"
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           aria-controls="filter-panel"
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50 active:scale-95"
+          className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-gray-200)] bg-white px-4 py-2 text-sm font-medium text-[var(--color-gray-800)] shadow-[var(--shadow-card)] transition-[background-color] duration-200 hover:bg-[var(--color-gray-50)] active:scale-[0.98]"
+          style={{ transitionTimingFunction: "var(--ease-out)" }}
         >
           <svg
-            className="h-4 w-4 shrink-0 text-gray-500"
+            className="h-4 w-4 shrink-0 text-[var(--color-gray-500)]"
             viewBox="0 0 20 20"
             fill="currentColor"
             aria-hidden="true"
@@ -236,17 +252,17 @@ export default function SearchFilters({
           </svg>
           Filtros
           {hasFilters && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FF6B2B] text-[10px] font-bold text-white">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-brand-orange)] text-[10px] font-bold text-white">
               {filterLabels.length}
             </span>
           )}
         </button>
 
-        {/* Active filter pills */}
+        {/* Chips activos en móvil */}
         {filterLabels.map((label) => (
           <span
             key={label}
-            className="inline-flex items-center rounded-full border border-gray-200 bg-[#F5F5F4] px-3 py-1 text-xs font-medium text-[#111111]"
+            className="inline-flex items-center rounded-full border border-[#FFD5C0] bg-[#FFF0EA] px-3 py-1 text-xs font-medium text-[var(--color-brand-orange)]"
           >
             {label}
           </span>
@@ -256,166 +272,230 @@ export default function SearchFilters({
           <button
             type="button"
             onClick={handleClear}
-            className="ml-auto text-xs text-gray-400 underline-offset-2 transition hover:text-[#111111] hover:underline"
+            className="ml-auto text-xs text-[var(--color-gray-400)] underline-offset-2 transition-colors duration-150 hover:text-[var(--color-gray-900)] hover:underline"
           >
             Limpiar todo
           </button>
         )}
       </div>
 
-      {/* ── Filter panel ─────────────────────────────────────────────────── */}
-      {open && (
-        <div
-          id="filter-panel"
-          role="search"
-          aria-label="Filtros de búsqueda"
-          className="mt-3 rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
-        >
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-
-            {/* Texto libre */}
-            <div className="sm:col-span-2 lg:col-span-3">
-              <label htmlFor="filter-search" className={labelCls}>Buscar</label>
-              <input
-                id="filter-search"
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleApply()}
-                placeholder="Título o descripción…"
-                className={inputCls}
-              />
-            </div>
-
-            {/* Categoría */}
-            <div>
-              <label htmlFor="filter-category" className={labelCls}>Categoría</label>
-              <select
-                id="filter-category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className={inputCls}
-              >
-                <option value="">Todas las categorías</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Modelo */}
-            <div>
-              <label htmlFor="filter-model" className={labelCls}>Modelo</label>
-              <select
-                id="filter-model"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className={inputCls}
-              >
-                <option value="">Todos los modelos</option>
-                {MODEL_OPTIONS.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Condición */}
-            <div>
-              <label htmlFor="filter-condition" className={labelCls}>Condición</label>
-              <select
-                id="filter-condition"
-                value={condition}
-                onChange={(e) => setCondition(e.target.value)}
-                className={inputCls}
-              >
-                <option value="">Cualquier condición</option>
-                {CONDITIONS.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Precio mín / máx */}
-            <div>
-              <label htmlFor="filter-price-min" className={labelCls}>Precio mínimo (€)</label>
-              <input
-                id="filter-price-min"
-                type="number"
-                min="0"
-                step="1"
-                value={priceMin}
-                onChange={(e) => setPriceMin(e.target.value)}
-                placeholder="0"
-                className={inputCls}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="filter-price-max" className={labelCls}>Precio máximo (€)</label>
-              <input
-                id="filter-price-max"
-                type="number"
-                min="0"
-                step="1"
-                value={priceMax}
-                onChange={(e) => setPriceMax(e.target.value)}
-                placeholder="Sin límite"
-                className={inputCls}
-              />
-            </div>
-
-            {/* Specs dinámicos */}
-            {activeSpecFields.length > 0 && (
-              <>
-                <div className="sm:col-span-2 lg:col-span-3">
-                  <hr className="border-gray-100" />
-                  <p className="mt-3 text-xs font-medium uppercase tracking-wide text-gray-400">
-                    Especificaciones — {CATEGORIES.find(c => c.value === category)?.label}
-                  </p>
-                </div>
-                {activeSpecFields.map((field) => (
-                  <div key={field.key}>
-                    <label htmlFor={`filter-spec-${field.key}`} className={labelCls}>
-                      {field.label}
-                    </label>
-                    <select
-                      id={`filter-spec-${field.key}`}
-                      value={specs[field.key] ?? ""}
-                      onChange={(e) => handleSpecChange(field.key, e.target.value)}
-                      className={inputCls}
-                    >
-                      <option value="">Cualquiera</option>
-                      {field.options.map((opt) => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="mt-5 flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
-            <button
-              id="filter-clear"
-              type="button"
-              onClick={handleClear}
-              className="rounded-lg border border-gray-200 bg-white px-6 py-2.5 text-sm font-medium text-gray-800 transition hover:bg-gray-50 active:scale-95"
+      {/* Chips activos en desktop (encima del panel) */}
+      {hasFilters && filterLabels.length > 0 && (
+        <div className="mb-3 hidden flex-wrap gap-1.5 lg:flex">
+          {filterLabels.map((label) => (
+            <span
+              key={label}
+              className="inline-flex items-center rounded-full border border-[#FFD5C0] bg-[#FFF0EA] px-2.5 py-1 text-xs font-medium text-[var(--color-brand-orange)]"
             >
-              Limpiar
-            </button>
-            <button
-              id="filter-apply"
-              type="button"
-              onClick={handleApply}
-              className="rounded-lg bg-[#FF6B2B] px-6 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#FF8C57] active:scale-95"
-            >
-              Aplicar filtros
-            </button>
-          </div>
+              {label}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={handleClear}
+            className="text-xs text-[var(--color-gray-400)] underline-offset-2 transition-colors duration-150 hover:text-[var(--color-gray-900)] hover:underline"
+          >
+            Limpiar
+          </button>
         </div>
       )}
+
+      {/* ── Panel de filtros ────────────────────────────────────────────── */}
+      {/*
+        Móvil: fixed bottom sheet con translate-y, z-50, max-h 85dvh, rounded top
+        Desktop (lg+): static, sin sombra, sin bordes — el sidebar de page.tsx provee el contexto
+      */}
+      <div
+        id="filter-panel"
+        role="search"
+        aria-label="Filtros de búsqueda"
+        className={[
+          // Móvil base
+          "fixed bottom-0 left-0 right-0 z-50 max-h-[85dvh] overflow-y-auto",
+          "rounded-t-[var(--radius-lg)] bg-white p-5",
+          "shadow-[0_-4px_40px_rgb(0_0_0_/_0.14)]",
+          "transition-transform duration-300",
+          // Desktop override: vuelve a flujo normal
+          "lg:relative lg:inset-auto lg:z-auto lg:max-h-none lg:overflow-visible",
+          "lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:block",
+          // Visibilidad móvil via transform
+          open ? "translate-y-0" : "translate-y-full",
+          // Desktop siempre visible
+          "lg:translate-y-0",
+        ].join(" ")}
+        style={{ transitionTimingFunction: "var(--ease-out)" }}
+      >
+        {/* Cabecera móvil dentro del drawer */}
+        <div className="mb-4 flex items-center justify-between lg:hidden">
+          <span className="text-sm font-semibold text-[var(--color-gray-900)]">Filtros</span>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="rounded-[var(--radius-sm)] p-1.5 text-[var(--color-gray-500)] transition-[background-color] duration-150 hover:bg-[var(--color-gray-50)]"
+            aria-label="Cerrar filtros"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M3 3 L13 13 M13 3 L3 13" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Campos de filtro */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+
+          {/* Texto libre */}
+          <div className="sm:col-span-2 lg:col-span-1">
+            <label htmlFor="filter-search" className={labelCls}>Buscar</label>
+            <input
+              id="filter-search"
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleApply()}
+              placeholder="Título o descripción…"
+              className={inputCls}
+            />
+          </div>
+
+          {/* Categoría */}
+          <div>
+            <label htmlFor="filter-category" className={labelCls}>Categoría</label>
+            <select
+              id="filter-category"
+              value={category}
+              onChange={(e) => { setCategory(e.target.value); setSpecs({}); }}
+              className={inputCls}
+            >
+              <option value="">Todas</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Modelo */}
+          <div>
+            <label htmlFor="filter-model" className={labelCls}>Modelo</label>
+            <select
+              id="filter-model"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className={inputCls}
+            >
+              <option value="">Todos</option>
+              {MODEL_OPTIONS.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Condición */}
+          <div>
+            <label htmlFor="filter-condition" className={labelCls}>Condición</label>
+            <select
+              id="filter-condition"
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+              className={inputCls}
+            >
+              <option value="">Cualquiera</option>
+              {CONDITIONS.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Precio */}
+          <div>
+            <label htmlFor="filter-price-min" className={labelCls}>Precio mínimo (€)</label>
+            <input
+              id="filter-price-min"
+              type="number"
+              min="0"
+              step="1"
+              value={priceMin}
+              onChange={(e) => setPriceMin(e.target.value)}
+              placeholder="0"
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="filter-price-max" className={labelCls}>Precio máximo (€)</label>
+            <input
+              id="filter-price-max"
+              type="number"
+              min="0"
+              step="1"
+              value={priceMax}
+              onChange={(e) => setPriceMax(e.target.value)}
+              placeholder="Sin límite"
+              className={inputCls}
+            />
+          </div>
+
+          {/* Specs dinámicos */}
+          {activeSpecFields.length > 0 && (
+            <>
+              <div className="sm:col-span-2 lg:col-span-1">
+                <hr className="border-[var(--color-gray-100)]" />
+                <p className="mt-3 text-xs font-medium text-[var(--color-gray-600)]">
+                  {CATEGORIES.find(c => c.value === category)?.label}
+                </p>
+              </div>
+              {activeSpecFields.map((field) => (
+                <div key={field.key}>
+                  <label htmlFor={`filter-spec-${field.key}`} className={labelCls}>
+                    {field.label}
+                  </label>
+                  <select
+                    id={`filter-spec-${field.key}`}
+                    value={specs[field.key] ?? ""}
+                    onChange={(e) => handleSpecChange(field.key, e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">Cualquiera</option>
+                    {field.options.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* Acciones */}
+        <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-gray-100)] pt-4">
+          <button
+            id="filter-clear"
+            type="button"
+            onClick={handleClear}
+            className="flex-1 rounded-[var(--radius-md)] border border-[var(--color-gray-200)] bg-white px-4 py-2 text-sm font-medium text-[var(--color-gray-700)] transition-[background-color] duration-200 hover:bg-[var(--color-gray-50)] active:scale-[0.98]"
+            style={{ transitionTimingFunction: "var(--ease-out)" }}
+          >
+            Limpiar
+          </button>
+          <button
+            id="filter-apply"
+            type="button"
+            onClick={handleApply}
+            className="flex-1 rounded-[var(--radius-md)] bg-[var(--color-brand-orange)] px-4 py-2 text-sm font-medium text-white transition-[background-color,transform] duration-200 hover:bg-[#e8601f] active:scale-[0.97]"
+            style={{ transitionTimingFunction: "var(--ease-out)" }}
+          >
+            Aplicar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

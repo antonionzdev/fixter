@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MarkAsSoldModal } from "@/components/dashboard/mark-as-sold-modal";
+import { ReviewFormModal } from "@/components/dashboard/review-form-modal";
 import { getSupabase } from "@/lib/supabase";
 
 type ListingActionsProps = {
@@ -12,20 +13,16 @@ type ListingActionsProps = {
   status: string;
 };
 
-const actionClass =
-  "w-full rounded-lg px-3 py-2 text-center text-xs font-medium transition sm:text-sm";
-
-function formatListingError(message: string): string {
-  if (message.toLowerCase().includes("row-level security")) {
-    return `${message}\n\nEjecuta fixter/supabase/fix-listings-update-rls.sql en el SQL Editor de Supabase.`;
-  }
-  return message;
-}
 
 export function ListingActions({ listingId, listingTitle, status }: ListingActionsProps) {
   const router = useRouter();
   const [soldModalOpen, setSoldModalOpen] = useState(false);
   const [pending, setPending] = useState<"delete" | null>(null);
+  const [sellerReviewOpen, setSellerReviewOpen] = useState(false);
+  const [confirmedBuyer, setConfirmedBuyer] = useState<{
+    id: string;
+    username: string;
+  } | null>(null);
 
   async function getAuthenticatedUser() {
     const supabase = getSupabase();
@@ -59,7 +56,7 @@ export function ListingActions({ listingId, listingTitle, status }: ListingActio
         .maybeSingle();
 
       if (error) {
-        window.alert(formatListingError(error.message));
+        window.alert("No se pudo eliminar el anuncio. Inténtalo de nuevo.");
         return;
       }
 
@@ -81,29 +78,30 @@ export function ListingActions({ listingId, listingTitle, status }: ListingActio
   return (
     <>
       <div className="flex flex-col gap-2">
-        <Link
-          href={`/listings/${listingId}/edit`}
-          className={`${actionClass} border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50`}
-        >
-          Editar
-        </Link>
-
-        {status === "active" && (
-          <button
-            type="button"
-            onClick={() => setSoldModalOpen(true)}
-            disabled={isBusy}
-            className={`${actionClass} border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60`}
+        <div className="flex gap-2">
+          <Link
+            href={`/listings/${listingId}/edit`}
+            className="flex-1 rounded-[6px] border border-zinc-900 px-3 py-2 text-center text-[13px] font-medium text-zinc-900 transition-colors hover:bg-zinc-50"
           >
-            Marcar como vendido
-          </button>
-        )}
+            Editar
+          </Link>
+          {status === "active" && (
+            <button
+              type="button"
+              onClick={() => setSoldModalOpen(true)}
+              disabled={isBusy}
+              className="flex-1 rounded-[6px] bg-zinc-950 px-3 py-2 text-center text-[13px] font-medium text-white transition-[opacity] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Marcar como vendido
+            </button>
+          )}
+        </div>
 
         <button
           type="button"
           onClick={handleDelete}
           disabled={isBusy}
-          className={`${actionClass} border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60`}
+          className="w-full rounded-[6px] px-3 py-2 text-center text-[13px] font-medium text-[#EF4444] transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending === "delete" ? "Eliminando…" : "Eliminar"}
         </button>
@@ -114,8 +112,28 @@ export function ListingActions({ listingId, listingTitle, status }: ListingActio
         listingTitle={listingTitle}
         isOpen={soldModalOpen}
         onClose={() => setSoldModalOpen(false)}
-        onSuccess={() => router.refresh()}
+        onSuccess={(buyerId, buyerUsername) => {
+          router.refresh();
+          if (buyerId && buyerUsername) {
+            setConfirmedBuyer({ id: buyerId, username: buyerUsername });
+            setSellerReviewOpen(true);
+          }
+        }}
       />
+
+      {sellerReviewOpen && confirmedBuyer && (
+        <ReviewFormModal
+          listingId={listingId}
+          reviewedId={confirmedBuyer.id}
+          reviewedUsername={confirmedBuyer.username}
+          subtitle="Cuéntanos cómo fue la experiencia con este comprador"
+          commentPlaceholder="¿Fue puntual? ¿Se comunicó bien? ¿Recomendarías vender a esta persona?"
+          skippable
+          isOpen={sellerReviewOpen}
+          onClose={() => setSellerReviewOpen(false)}
+          onSuccess={() => setSellerReviewOpen(false)}
+        />
+      )}
     </>
   );
 }

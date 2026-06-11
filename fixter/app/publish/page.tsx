@@ -21,15 +21,15 @@ export default async function PublishPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-10 sm:px-6 sm:py-14">
+    <main className="min-h-screen bg-[#F5F5F5] px-4 py-10 sm:px-6 sm:py-14">
       <div className="mx-auto max-w-2xl">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
             Publicar anuncio
           </h1>
           <p className="mt-2 text-sm text-zinc-500 sm:text-base">
             Completa los datos de tu pieza o recambio. Los campos marcados con{" "}
-            <span className="text-rose-500">*</span> son obligatorios.
+            <span className="text-[#FF6B2B]">*</span> son obligatorios.
           </p>
         </div>
 

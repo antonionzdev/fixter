@@ -33,6 +33,38 @@ type PurchaseItem = {
   review: { rating: number; comment: string | null } | null;
 };
 
+function EmptyState({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="mt-8 flex flex-col items-center rounded-2xl border border-dashed border-zinc-300 bg-white px-6 py-16 text-center">
+      <svg
+        className="h-12 w-12 text-zinc-300"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        aria-hidden
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M20 7l-8-4-8 4m16 0v10l-8 4m0-10L4 7m8 10V7m0 10l8-4"
+        />
+      </svg>
+      <p className="mt-4 text-base font-medium text-zinc-900">{title}</p>
+      <p className="mt-2 text-sm text-zinc-500">{description}</p>
+      {action && <div className="mt-6">{action}</div>}
+    </div>
+  );
+}
+
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const { tab } = await searchParams;
   const activeTab = tab === "sold" ? "sold" : tab === "purchases" ? "purchases" : "active";
@@ -46,11 +78,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     redirect("/login?redirect=/dashboard");
   }
 
-  // Parallel: seller listings + purchases as buyer
   const [listingsResult, rawPurchasesResult] = await Promise.all([
     supabase
       .from("listings")
-      .select("*")
+      .select("id, seller_id, title, description, price, category, brand, model, condition, location, images, status, created_at")
       .eq("seller_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
@@ -78,7 +109,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const rawPurchases = (rawPurchasesResult.data ?? []) as unknown as RawPurchaseRow[];
   const purchaseIds = rawPurchases.map((p) => p.id);
 
-  // Get existing reviews for these purchases (sequential — depends on purchaseIds)
   const reviewsByListing = new Map<string, { rating: number; comment: string | null }>();
   if (purchaseIds.length > 0) {
     const { data: myReviews } = await supabase
@@ -105,15 +135,21 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const soldListings = allListings.filter((l) => l.status === "sold");
   const visibleListings = activeTab === "sold" ? soldListings : activeListings;
 
+  const tabClass = (t: string) =>
+    `rounded-lg px-5 py-2 text-sm font-medium transition-colors duration-150 ${
+      activeTab === t ? "bg-zinc-950 text-white" : "text-zinc-600 hover:text-zinc-900"
+    }`;
+
   return (
-    <div className="min-h-full bg-zinc-50 font-sans text-zinc-900">
+    <div className="min-h-full bg-[#F5F5F5] font-sans text-zinc-900">
       <SiteHeader />
 
-      <main className="px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      {/* Page header */}
+      <div className="border-b border-[#EEEEEE] bg-white shadow-sm">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+              <h1 className="text-[28px] font-bold leading-tight text-zinc-900">
                 Mis anuncios
               </h1>
               <p className="mt-1 text-sm text-zinc-500">
@@ -123,42 +159,25 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </div>
             <Link
               href="/publish"
-              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-zinc-950 px-5 py-3 text-sm font-semibold text-white transition-[opacity,transform] duration-200 hover:opacity-90 active:scale-[0.97]"
             >
               Publicar nuevo anuncio
             </Link>
           </div>
+        </div>
+      </div>
 
+      <main className="px-4 py-8 sm:px-6">
+        <div className="mx-auto max-w-6xl">
           {/* Tabs */}
-          <div className="mt-8 flex gap-1 rounded-xl border border-zinc-200 bg-white p-1">
-            <Link
-              href="/dashboard?tab=active"
-              className={`flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-medium transition ${
-                activeTab === "active"
-                  ? "bg-zinc-900 text-white"
-                  : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
-              }`}
-            >
+          <div className="inline-flex items-center gap-1 rounded-[10px] bg-white p-1 shadow-sm">
+            <Link href="/dashboard?tab=active" className={tabClass("active")}>
               Activos ({activeListings.length})
             </Link>
-            <Link
-              href="/dashboard?tab=sold"
-              className={`flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-medium transition ${
-                activeTab === "sold"
-                  ? "bg-zinc-900 text-white"
-                  : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
-              }`}
-            >
+            <Link href="/dashboard?tab=sold" className={tabClass("sold")}>
               Vendidos ({soldListings.length})
             </Link>
-            <Link
-              href="/dashboard?tab=purchases"
-              className={`flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-medium transition ${
-                activeTab === "purchases"
-                  ? "bg-zinc-900 text-white"
-                  : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
-              }`}
-            >
+            <Link href="/dashboard?tab=purchases" className={tabClass("purchases")}>
               Compras ({purchases.length})
             </Link>
           </div>
@@ -166,16 +185,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           {/* Content */}
           {activeTab === "purchases" ? (
             purchases.length === 0 ? (
-              <div className="mt-8 rounded-2xl border border-dashed border-zinc-300 bg-white px-6 py-16 text-center">
-                <p className="text-base font-medium text-zinc-900">
-                  Todavía no has comprado ningún artículo en Fixter
-                </p>
-                <p className="mt-2 text-sm text-zinc-500">
-                  Cuando un vendedor confirme tu compra aparecerá aquí.
-                </p>
-              </div>
+              <EmptyState
+                title="Todavía no has comprado ningún artículo"
+                description="Cuando un vendedor confirme tu compra aparecerá aquí."
+              />
             ) : (
-              <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
+              <ul className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
                 {purchases.map((p) => (
                   <li key={p.id}>
                     <PurchaseCard
@@ -191,30 +206,33 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               </ul>
             )
           ) : allListings.length === 0 ? (
-            <div className="mt-8 rounded-2xl border border-dashed border-zinc-300 bg-white px-6 py-16 text-center">
-              <p className="text-base font-medium text-zinc-900">
-                Todavía no has publicado ningún anuncio
-              </p>
-              <p className="mt-2 text-sm text-zinc-500">
-                Publica tu primera pieza y empieza a vender en Fixter.
-              </p>
-              <Link
-                href="/publish"
-                className="mt-6 inline-flex rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800"
-              >
-                Publicar anuncio
-              </Link>
-            </div>
+            <EmptyState
+              title="Todavía no has publicado ningún anuncio"
+              description="Publica tu primera pieza y empieza a vender en Fixter."
+              action={
+                <Link
+                  href="/publish"
+                  className="inline-flex rounded-lg bg-zinc-950 px-5 py-3 text-sm font-semibold text-white transition-[opacity] hover:opacity-90"
+                >
+                  Publicar tu primer anuncio
+                </Link>
+              }
+            />
           ) : visibleListings.length === 0 ? (
-            <div className="mt-8 rounded-2xl border border-dashed border-zinc-300 bg-white px-6 py-12 text-center">
-              <p className="text-sm text-zinc-500">
-                {activeTab === "sold"
-                  ? "No tienes anuncios vendidos todavía."
-                  : "No tienes anuncios activos. Revisa la pestaña Vendidos."}
-              </p>
-            </div>
+            <EmptyState
+              title={
+                activeTab === "sold"
+                  ? "No tienes anuncios vendidos todavía"
+                  : "No tienes anuncios activos"
+              }
+              description={
+                activeTab === "sold"
+                  ? "Los anuncios que marques como vendidos aparecerán aquí."
+                  : "Revisa la pestaña Vendidos para ver los que ya cerraste."
+              }
+            />
           ) : (
-            <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
+            <ul className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
               {visibleListings.map((listing) => (
                 <li key={listing.id}>
                   <DashboardListingCard listing={listing} />

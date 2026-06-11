@@ -24,6 +24,7 @@ export interface ConversationParticipant {
   id: string;
   username: string;
   avatar_url: string | null;
+  location?: string | null;
 }
 
 /** Listing mínimo visible en la conversación */
@@ -55,4 +56,18 @@ export interface MessageInsert {
   sender_id: string; // debe coincidir con auth.uid()
   body: string;
   offer_amount?: number | null;
+}
+
+/** Fila cruda de la tabla public.offers */
+export interface OfferRow {
+  id: string;
+  conversation_id: string;
+  listing_id: string;
+  buyer_id: string;
+  seller_id: string;
+  amount: number;
+  status: "pending" | "accepted" | "rejected" | "countered";
+  counter_amount: number | null;
+  created_at: string;
+  updated_at: string;
 }

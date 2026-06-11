@@ -28,33 +28,34 @@ export function PurchaseCard({
 
   return (
     <>
-      <article className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-shadow hover:shadow-md">
-        <Link href={`/listings/${listingId}`} className="block">
-          <div className="relative aspect-[4/3] bg-gradient-to-br from-zinc-100 to-zinc-200">
-            {listingImage ? (
-              <Image
-                src={listingImage}
-                alt={listingTitle}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                unoptimized
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-zinc-400">
-                Sin foto
-              </div>
-            )}
-            <span className="absolute left-3 top-3 rounded-full bg-zinc-900/80 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
-              Comprado
-            </span>
-          </div>
+      <article className="flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-sm transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-md">
+        <Link
+          href={`/listings/${listingId}`}
+          className="relative block aspect-[4/3] overflow-hidden bg-gradient-to-br from-zinc-100 to-zinc-200"
+        >
+          {listingImage ? (
+            <Image
+              src={listingImage}
+              alt={listingTitle}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              unoptimized
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-zinc-400">
+              Sin foto
+            </div>
+          )}
+          <span className="absolute left-2 top-2 rounded bg-[#3B82F6] px-2 py-0.5 text-[11px] font-medium text-white">
+            Comprado
+          </span>
         </Link>
 
-        <div className="flex flex-1 flex-col p-4">
+        <div className="flex flex-1 flex-col px-3 pb-0 pt-3">
           <Link
             href={`/listings/${listingId}`}
-            className="line-clamp-2 text-sm font-medium text-zinc-900 hover:underline"
+            className="line-clamp-2 text-[14px] font-semibold leading-snug text-zinc-900 hover:underline"
           >
             {listingTitle}
           </Link>
@@ -65,21 +66,31 @@ export function PurchaseCard({
             @{sellerUsername}
           </Link>
 
-          <div className="mt-auto pt-4">
-            {review ? (
-              <div className="space-y-1.5">
-                <StarRating rating={review.rating} size="sm" />
-                {review.comment && (
-                  <p className="line-clamp-2 text-xs text-zinc-500">{review.comment}</p>
-                )}
-              </div>
-            ) : (
+          {review && (
+            <div className="mt-2 space-y-1">
+              <StarRating rating={review.rating} size="sm" />
+              {review.comment && (
+                <p className="line-clamp-2 text-xs text-zinc-500">{review.comment}</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-3 border-t border-[#F0F0F0] px-3 pb-3 pt-3">
+          <div className="flex flex-col gap-2">
+            <Link
+              href={`/listings/${listingId}`}
+              className="flex w-full items-center justify-center rounded-[6px] border border-zinc-200 px-3 py-2 text-[13px] font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
+            >
+              Ver anuncio
+            </Link>
+            {!review && (
               <button
                 type="button"
                 onClick={() => setModalOpen(true)}
-                className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-800 transition hover:bg-amber-100 sm:text-sm"
+                className="w-full rounded-[6px] bg-zinc-950 px-3 py-2 text-[13px] font-semibold text-white transition-[opacity] hover:opacity-90"
               >
-                Valorar compra
+                Valorar vendedor
               </button>
             )}
           </div>

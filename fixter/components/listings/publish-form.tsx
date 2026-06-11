@@ -119,9 +119,9 @@ const CATEGORY_SPECS: Record<string, SpecField[]> = {
 // ---------------------------------------------------------------------------
 
 const inputCls =
-  "mt-1.5 block w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100";
+  "mt-1.5 block w-full rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-zinc-900";
 
-const labelCls = "text-sm font-medium text-zinc-700";
+const labelCls = "text-sm font-semibold text-zinc-900";
 
 // ---------------------------------------------------------------------------
 // COMPONENT
@@ -196,7 +196,7 @@ export default function PublishForm() {
     if (submitting) return;
 
     // Validate required
-    if (!category || !model || !title.trim() || !price || !condition) {
+    if (!category || !model || !title.trim() || Number(price) <= 0 || !condition) {
       setFormError("Por favor, completa todos los campos obligatorios.");
       return;
     }
@@ -215,13 +215,28 @@ export default function PublishForm() {
       return;
     }
 
+    // Validate images before upload
+    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+    for (const file of imageFiles) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setFormError("Solo se permiten imágenes JPG, PNG, WEBP o GIF.");
+        setSubmitting(false);
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        setFormError("Cada imagen debe pesar menos de 10 MB.");
+        setSubmitting(false);
+        return;
+      }
+    }
+
     // Upload images
     const imageUrls: string[] = [];
     const uploadedPaths: string[] = [];
 
     for (const file of imageFiles) {
-      const safeName = `${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
-      const uploadPath = `${user.id}/${safeName}`;
+      const uploadPath = `${user.id}/${crypto.randomUUID()}`;
 
       const { error: uploadError } = await supabase.storage
         .from("listing-images")
@@ -372,6 +387,7 @@ export default function PublishForm() {
               placeholder="Describe el estado, compatibilidad o detalles importantes"
               className={inputCls}
             />
+            <Hint text="Incluye estado, compatibilidad y defectos. Los anuncios detallados se venden más rápido." />
           </div>
 
           {/* Precio */}
@@ -384,12 +400,13 @@ export default function PublishForm() {
               type="number"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              min="0"
+              min="0.01"
               step="0.01"
               placeholder="0.00"
               className={inputCls}
               required
             />
+            <Hint text="Revisa precios similares antes de publicar. Un precio competitivo recibe más visitas." />
           </div>
 
           {/* Condición */}
@@ -411,6 +428,7 @@ export default function PublishForm() {
                 </option>
               ))}
             </select>
+            <Hint text="Sé honesto con el estado. Los compradores valoran la transparencia." />
           </div>
 
           {/* Ubicación */}
@@ -432,17 +450,22 @@ export default function PublishForm() {
           <div className="sm:col-span-2">
             <label
               htmlFor="pub-shipping"
-              className="flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 transition hover:bg-zinc-100"
+              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
+                shipping
+                  ? "border-[#FF6B2B] bg-[#FFF5F0]"
+                  : "border-zinc-200 bg-zinc-50 hover:bg-zinc-100"
+              }`}
             >
               <input
                 id="pub-shipping"
                 type="checkbox"
                 checked={shipping}
                 onChange={(e) => setShipping(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300 accent-sky-600"
+                className="h-4 w-4 rounded border-zinc-300 accent-[#FF6B2B]"
               />
               <span className="text-sm text-zinc-700">Envío disponible</span>
             </label>
+            <Hint text="Los vendedores con envío activo reciben más contactos." />
           </div>
         </div>
       </Section>
@@ -475,6 +498,9 @@ export default function PublishForm() {
               </div>
             ))}
           </div>
+          <p className="mt-4 text-xs text-[#999]">
+            Completar las especificaciones técnicas mejora la visibilidad de tu anuncio en los filtros de búsqueda.
+          </p>
         </Section>
       )}
 
@@ -487,14 +513,19 @@ export default function PublishForm() {
         {canAddMore && (
           <label
             htmlFor="pub-images"
-            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50 px-6 py-8 text-center transition hover:border-sky-400 hover:bg-sky-50"
+            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-[#FAFAFA] px-6 py-8 text-center transition hover:border-zinc-900 hover:bg-[#F0F0F0]"
           >
-            <span className="text-2xl">📎</span>
-            <span className="text-sm font-medium text-zinc-700">
+            <svg className="h-7 w-7 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+            </svg>
+            <span className="text-sm font-semibold text-zinc-900">
               Haz clic para añadir fotos
             </span>
             <span className="text-xs text-zinc-400">
-              {imageFiles.length}/{MAX_LISTING_IMAGES} imágenes — JPG, PNG, WEBP
+              <span className="font-semibold text-[#FF6B2B]">
+                {imageFiles.length}/{MAX_LISTING_IMAGES} imágenes
+              </span>
+              {" — JPG, PNG, WEBP"}
             </span>
             <input
               id="pub-images"
@@ -508,17 +539,19 @@ export default function PublishForm() {
           </label>
         )}
 
+        <Hint text="Sube al menos 3 fotos desde distintos ángulos. Más fotos = más contactos." />
+
         {/* Previews */}
         {imagePreviews.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {imagePreviews.map((preview, index) => (
               <div
                 key={`${preview.file.name}-${index}`}
-                className="group relative overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 shadow-sm"
+                className="group relative overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 shadow-sm"
               >
                 {/* Badge imagen principal */}
                 {index === 0 && (
-                  <span className="absolute left-2 top-2 z-10 rounded-full bg-sky-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow">
+                  <span className="absolute left-2 top-2 z-10 rounded-full bg-[#FF6B2B] px-2 py-0.5 text-[10px] font-semibold text-white shadow">
                     Principal
                   </span>
                 )}
@@ -532,7 +565,7 @@ export default function PublishForm() {
                   type="button"
                   onClick={() => removeImage(index)}
                   aria-label={`Eliminar imagen ${index + 1}`}
-                  className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-zinc-600 shadow opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600"
+                  className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-zinc-600 shadow transition hover:bg-rose-50 hover:text-rose-600"
                 >
                   ✕
                 </button>
@@ -563,7 +596,7 @@ export default function PublishForm() {
         type="submit"
         id="pub-submit"
         disabled={submitting}
-        className="w-full rounded-xl bg-black px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex h-[52px] w-full items-center justify-center rounded-lg bg-zinc-950 px-6 text-sm font-bold text-white transition-[opacity,background-color] duration-200 hover:bg-[#222] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {submitting ? "Publicando…" : "Publicar anuncio"}
       </button>
@@ -576,7 +609,11 @@ export default function PublishForm() {
 // ---------------------------------------------------------------------------
 
 function Required() {
-  return <span className="text-rose-500">*</span>;
+  return <span className="text-[#FF6B2B]">*</span>;
+}
+
+function Hint({ text }: { text: string }) {
+  return <p className="mt-1.5 text-xs text-[#999]">{text}</p>;
 }
 
 function Section({
@@ -591,7 +628,7 @@ function Section({
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="mb-5">
-        <h2 className="text-base font-semibold text-zinc-900">{title}</h2>
+        <h2 className="text-base font-bold text-zinc-900">{title}</h2>
         {subtitle && (
           <p className="mt-0.5 text-sm text-zinc-500">{subtitle}</p>
         )}

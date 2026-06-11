@@ -27,11 +27,13 @@ type RawConversation = {
     id: string;
     username: string;
     avatar_url: string | null;
+    location: string | null;
   } | null;
   seller: {
     id: string;
     username: string;
     avatar_url: string | null;
+    location: string | null;
   } | null;
 };
 
@@ -47,13 +49,16 @@ export default async function ConversationPage({ params }: PageProps) {
     redirect(`/login?redirect=/messages/${conversationId}`);
   }
 
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_REGEX.test(conversationId)) notFound();
+
   const { data: rawConv } = await supabase
     .from("conversations")
     .select(
       `id, buyer_id, seller_id, created_at,
        listing:listings(id, title, images, price),
-       buyer:profiles!buyer_id(id, username, avatar_url),
-       seller:profiles!seller_id(id, username, avatar_url)`,
+       buyer:profiles!buyer_id(id, username, avatar_url, location),
+       seller:profiles!seller_id(id, username, avatar_url, location)`,
     )
     .eq("id", conversationId)
     .maybeSingle();
@@ -88,8 +93,8 @@ export default async function ConversationPage({ params }: PageProps) {
 
   const isBuyer = conv.buyer_id === user.id;
   const otherUser: ConversationParticipant = isBuyer
-    ? { id: conv.seller.id, username: conv.seller.username, avatar_url: conv.seller.avatar_url }
-    : { id: conv.buyer.id, username: conv.buyer.username, avatar_url: conv.buyer.avatar_url };
+    ? { id: conv.seller.id, username: conv.seller.username, avatar_url: conv.seller.avatar_url, location: conv.seller.location }
+    : { id: conv.buyer.id, username: conv.buyer.username, avatar_url: conv.buyer.avatar_url, location: conv.buyer.location };
 
   const listing = {
     id: conv.listing.id,
@@ -102,6 +107,7 @@ export default async function ConversationPage({ params }: PageProps) {
     <ChatView
       conversationId={conversationId}
       currentUserId={user.id}
+      isBuyer={isBuyer}
       otherUser={otherUser}
       listing={listing}
       initialMessages={initialMessages}

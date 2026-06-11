@@ -44,7 +44,7 @@ export function RecentlyViewedSection({ excludeId }: Props) {
 
     supabase
       .from("listings")
-      .select(`${FIELDS}, profiles!seller_id(*)`)
+      .select(`${FIELDS}, profiles!seller_id(id, username, avatar_url, full_name, location)`)
       .in("id", filtered)
       .eq("status", "active")
       .then(({ data, error }) => {
@@ -62,7 +62,7 @@ export function RecentlyViewedSection({ excludeId }: Props) {
           return;
         }
 
-        const rows = data as (ListingWithSeller & { profiles?: unknown })[];
+        const rows = data as unknown as (ListingWithSeller & { profiles?: unknown })[];
         setListings(toSorted(rows, filtered));
       });
   }, [excludeId]);
@@ -72,9 +72,7 @@ export function RecentlyViewedSection({ excludeId }: Props) {
   return (
     <>
       <section className="mb-6">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">
-          Vistos recientemente
-        </h2>
+        <h2 className="mb-3 text-sm font-semibold text-zinc-700">Vistos recientemente</h2>
         <div className="overflow-x-auto pb-2">
           <ul className="flex gap-3 sm:gap-4">
             {listings.map((listing) => (

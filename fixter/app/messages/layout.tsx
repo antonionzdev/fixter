@@ -55,7 +55,8 @@ export default async function MessagesLayout({
       .from("messages")
       .select("conversation_id, body, sender_id, read_at")
       .in("conversation_id", conversationIds)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(500);
     allMessages = (msgs ?? []) as RawMessage[];
   }
 

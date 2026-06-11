@@ -22,7 +22,6 @@ type MessagesShellProps = {
 
 export function MessagesShell({ conversations, children }: MessagesShellProps) {
   const pathname = usePathname();
-  // /messages → list; /messages/[id] → chat
   const isInChat = pathname !== "/messages";
   const activeConvId = isInChat ? (pathname.split("/")[2] ?? null) : null;
 
@@ -31,13 +30,13 @@ export function MessagesShell({ conversations, children }: MessagesShellProps) {
       {/* ── Sidebar ── */}
       <aside
         className={[
-          "flex-col overflow-y-auto border-r border-zinc-200 bg-white",
-          "w-full md:w-80 md:shrink-0",
+          "flex-col overflow-y-auto border-r border-[#EEEEEE] bg-white",
+          "w-full md:w-[340px] md:shrink-0",
           isInChat ? "hidden md:flex" : "flex",
         ].join(" ")}
       >
-        <div className="shrink-0 border-b border-zinc-100 px-4 py-3">
-          <h1 className="text-base font-semibold text-zinc-900">Mensajes</h1>
+        <div className="shrink-0 border-b border-[#EEEEEE] px-4 py-4">
+          <h1 className="text-base font-bold text-zinc-900">Mensajes</h1>
         </div>
 
         {conversations.length === 0 ? (
@@ -64,22 +63,24 @@ export function MessagesShell({ conversations, children }: MessagesShellProps) {
             </Link>
           </div>
         ) : (
-          <ul className="divide-y divide-zinc-100">
+          <ul>
             {conversations.map((conv) => {
               const isActive = conv.id === activeConvId;
+              const initial = conv.otherUser.username.charAt(0).toUpperCase();
+
               return (
                 <li key={conv.id}>
                   <Link
                     href={`/messages/${conv.id}`}
                     className={[
-                      "flex items-center gap-3 px-4 py-3.5 transition-colors",
+                      "flex items-start gap-3 py-4 border-b border-[#F0F0F0] border-l-[3px] pl-[13px] pr-4 transition-colors",
                       isActive
-                        ? "bg-zinc-100"
-                        : "hover:bg-zinc-50",
+                        ? "bg-[#F5F5F5] border-l-[#FF6B2B]"
+                        : "border-l-transparent hover:bg-[#FAFAFA]",
                     ].join(" ")}
                   >
-                    {/* Avatar del otro usuario */}
-                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-zinc-200">
+                    {/* Avatar */}
+                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#FF6B2B]">
                       {conv.otherUser.avatar_url ? (
                         <Image
                           src={conv.otherUser.avatar_url}
@@ -90,52 +91,49 @@ export function MessagesShell({ conversations, children }: MessagesShellProps) {
                           unoptimized
                         />
                       ) : (
-                        <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-zinc-600">
-                          {conv.otherUser.username.charAt(0).toUpperCase()}
+                        <span className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
+                          {initial}
                         </span>
                       )}
                     </div>
 
-                    {/* Texto */}
+                    {/* Content */}
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-1">
-                        <p
-                          className={`truncate text-sm ${
-                            conv.unreadCount > 0
-                              ? "font-semibold text-zinc-900"
-                              : "font-medium text-zinc-700"
-                          }`}
-                        >
+                      {/* Top row: name + timestamp/badge */}
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="truncate text-sm font-semibold text-zinc-900">
                           {conv.otherUser.username}
                         </p>
-                        {conv.lastMessageAt && (
-                          <span className="shrink-0 text-xs text-zinc-400">
-                            {formatRelativeTime(conv.lastMessageAt)}
-                          </span>
-                        )}
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          {conv.lastMessageAt && (
+                            <span className="text-xs text-[#999]">
+                              {formatRelativeTime(conv.lastMessageAt)}
+                            </span>
+                          )}
+                          {conv.unreadCount > 0 && (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FF6B2B] px-1.5 text-[11px] font-bold text-white leading-none">
+                              {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      <p className="truncate text-xs text-zinc-500">
+                      {/* Listing title */}
+                      <p className="mt-0.5 truncate text-xs text-zinc-500">
                         {conv.listingTitle}
                       </p>
 
+                      {/* Last message */}
                       <p
                         className={`mt-0.5 truncate text-xs ${
                           conv.unreadCount > 0
-                            ? "font-medium text-zinc-900"
-                            : "text-zinc-400"
+                            ? "font-medium text-zinc-700"
+                            : "text-[#999]"
                         }`}
                       >
                         {conv.lastMessageBody ?? "Sin mensajes aún"}
                       </p>
                     </div>
-
-                    {/* Badge no leídos */}
-                    {conv.unreadCount > 0 && (
-                      <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#FF6B2B] px-1.5 text-xs font-semibold text-white">
-                        {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
-                      </span>
-                    )}
                   </Link>
                 </li>
               );
@@ -147,7 +145,7 @@ export function MessagesShell({ conversations, children }: MessagesShellProps) {
       {/* ── Panel derecho ── */}
       <main
         className={[
-          "flex-1 flex flex-col overflow-hidden bg-zinc-50",
+          "flex-1 flex flex-col overflow-hidden bg-[#F7F7F7]",
           isInChat ? "flex" : "hidden md:flex",
         ].join(" ")}
       >

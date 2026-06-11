@@ -11,10 +11,17 @@ function mapProfile(row: Record<string, unknown>): PublicProfile {
     avatar_url: typeof row.avatar_url === "string" ? row.avatar_url : null,
     bio: typeof row.bio === "string" ? row.bio : null,
     location: typeof row.location === "string" ? row.location : null,
-    phone: typeof row.phone === "string" ? row.phone : null,
+    // phone is private PII and never part of the public profile. The owner edits
+    // it via /profile/edit, which reads it through the service role.
+    phone: null,
     created_at: String(row.created_at ?? new Date().toISOString()),
   };
 }
+
+// Columnas estrictamente públicas de profiles. NO incluir phone ni stripe_*:
+// el rol anon/authenticated tiene REVOCADO el SELECT sobre esas columnas.
+const PUBLIC_PROFILE_COLUMNS =
+  "id, username, full_name, avatar_url, bio, location, created_at";
 
 function mapSellerListing(row: Record<string, unknown>): SellerListing {
   return {
@@ -42,7 +49,7 @@ export async function getProfileByUsername(
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("*")
+    .select(PUBLIC_PROFILE_COLUMNS)
     .eq("username", username)
     .single();
 

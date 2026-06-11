@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fixter — Pagos Desktop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { background: #F5F5F2; font-family: 'Plus Jakarta Sans', sans-serif; min-height: 100vh; }
+    input, textarea { outline: none; }
+    button { cursor: pointer; }
+    button:active { opacity: 0.8; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    /* ── Tokens ─────────────────────────────────────────────── */
+    const T = {
+      orange:'#FF6B2B', black:'#0F0F0F',
+      gray50:'#FAFAFA', gray100:'#F3F4F6', gray200:'#E5E7EB',
+      gray400:'#9CA3AF', gray500:'#6B7280',
+      green:'#059669', red:'#DC2626',
+    };
+
+    /* ── Icons (same library) ────────────────────────────────── */
+    const Ic = {
+      phone:       ({s=20,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2.5"/><circle cx="12" cy="17.5" r=".9" fill={c} stroke="none"/></svg>,
+      lock:        ({s=16,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+      shield:      ({s=16,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+      truck:       ({s=18,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>,
+      box:         ({s=32,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg>,
+      warn:        ({s=15,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+      checkCircle: ({s=32,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+      card:        ({s=16,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
+      alertCircle: ({s=16,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+      ban:         ({s=16,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>,
+      bank:        ({s=16,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>,
+      star:        ({s=12,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill={c} stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+      camera:      ({s=24,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+      tag:         ({s=16,c='currentColor'}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
+    };
+
+    /* ── Desktop primitives ──────────────────────────────────── */
+    const Card = ({children,sx={}}) => (
+      <div style={{ background:'#fff', borderRadius:18, border:`1px solid ${T.gray200}`, padding:24, ...sx }}>{children}</div>
+    );
+
+    const BtnPrimary = ({label,onClick,sx={}}) => (
+      <button onClick={onClick} style={{ padding:'15px 28px', borderRadius:12, background:T.black, color:'#fff', border:'none', fontSize:15, fontWeight:700, fontFamily:'inherit', cursor:'pointer', transition:'opacity .15s', ...sx }}>{label}</button>
+    );
+
+    const BtnOutline = ({label,onClick,sx={}}) => (
+      <button onClick={onClick} style={{ padding:'14px 28px', borderRadius:12, background:'#fff', color:T.black, border:`1.5px solid ${T.gray200}`, fontSize:15, fontWeight:600, fontFamily:'inherit', cursor:'pointer', ...sx }}>{label}</button>
+    );
+
+    const BtnGhost = ({label,onClick,color=T.gray500}) => (
+      <button onClick={onClick} style={{ background:'none', border:'none', color, fontSize:14, fontWeight:600, fontFamily:'inherit', cursor:'pointer', padding:'8px 0' }}>{label}</button>
+    );
+
+    const Row = ({label,value,accent}) => (
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:`1px solid ${T.gray100}`, fontSize:14 }}>
+        <span style={{ color:T.gray500 }}>{label}</span>
+        <span style={{ fontWeight:accent?700:500, color:accent?T.orange:T.black }}>{value}</span>
+      </div>
+    );
+
+    const Pill = ({children,color=T.orange}) => (
+      <span style={{ display:'inline-block', fontSize:12, fontWeight:700, background:color+'18', color, padding:'4px 12px', borderRadius:20 }}>{children}</span>
+    );
+
+    /* ── Stepper ─────────────────────────────────────────────── */
+    function Stepper({ active }) {
+      const steps = ['Datos del pedido','Pago','Confirmación'];
+      return (
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          {steps.map((s,i) => (
+            <React.Fragment key={s}>
+              {i>0 && <div style={{ width:28, height:1, background:i<=active?T.black:T.gray200 }} />}
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <div style={{ width:22, height:22, borderRadius:'50%', background:i===active?T.orange:i<active?T.black:T.gray200, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  {i<active
+                    ? <span style={{ fontSize:10, color:'#fff', fontWeight:900 }}>✓</span>
+                    : <span style={{ fontSize:10, color:i===active?'#fff':T.gray500, fontWeight:700 }}>{i+1}</span>
+                  }
+                </div>
+                <span style={{ fontSize:13, fontWeight:i===active?700:500, color:i===active?T.black:T.gray400, whiteSpace:'nowrap' }}>{s}</span>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    }
+
+    /* ── Site header ─────────────────────────────────────────── */
+    function SiteHeader({ stepper, onBack, title }) {
+      return (
+        <header style={{ background:'#fff', borderBottom:`1px solid ${T.gray200}`, position:'sticky', top:0, zIndex:50 }}>
+          <div style={{ maxWidth:1120, margin:'0 auto', padding:'0 32px', height:64, display:'flex', alignItems:'center', gap:24 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:16, flexShrink:0 }}>
+              {onBack && (
+                <button onClick={onBack} style={{ background:'none', border:'none', fontSize:22, color:T.black, cursor:'pointer', lineHeight:1, paddingRight:4 }}>‹</button>
+              )}
+              <img src="uploads/Logo_Fixter_Completo.svg" alt="Fixter" style={{ height:26, display:'block' }} />
+              {title && <span style={{ fontSize:14, color:T.gray400, fontWeight:500 }}>· {title}</span>}
+            </div>
+            <div style={{ flex:1, display:'flex', justifyContent:'center' }}>
+              {stepper !== undefined && <Stepper active={stepper} />}
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, color:T.gray400, fontSize:13, fontWeight:600, flexShrink:0 }}>
+              <Ic.lock s={14} c={T.gray400}/> Pago seguro SSL
+            </div>
+          </div>
+        </header>
+      );
+    }
+
+    /* ── Product summary card (desktop) ──────────────────────── */
+    function ProductSummary({ showPrice }) {
+      return (
+        <div style={{ display:'flex', gap:14, alignItems:'center' }}>
+          <div style={{ width:68, height:68, borderRadius:14, background:T.gray100, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <Ic.phone s={28} c={T.gray400}/>
+          </div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:15, fontWeight:700, color:T.black }}>Pantalla LCD iPhone 13 Pro</div>
+            <div style={{ fontSize:13, color:T.gray400, marginTop:3, display:'flex', alignItems:'center', gap:4 }}>
+              @carlos_fix · <Ic.star s={12} c="#F59E0B"/> 4.9 (82 ventas)
+            </div>
+            {showPrice && <div style={{ fontSize:18, fontWeight:800, color:T.black, marginTop:6 }}>€89,99</div>}
+          </div>
+        </div>
+      );
+    }
+
+    /* ═══ CHECKOUT ════════════════════════════════════════════ */
+    function CheckoutScreen({ onSuccess, onFail }) {
+      const [card,setCard]=React.useState(''), [exp,setExp]=React.useState(''), [cvv,setCvv]=React.useState(''), [name,setName]=React.useState(''), [focus,setFocus]=React.useState('');
+      const fmtCard = v => v.replace(/\D/g,'').slice(0,16).replace(/(\d{4})(?=\d)/g,'$1 ');
+      const fmtExp  = v => { const d=v.replace(/\D/g,'').slice(0,4); return d.length>2?d.slice(0,2)+'/'+d.slice(2):d; };
+      const inp = f => ({ width:'100%', padding:'13px 14px', borderRadius:10, fontFamily:'inherit', border:`1.5px solid ${focus===f?T.orange:T.gray200}`, fontSize:14, color:T.black, background:T.gray50, transition:'border-color .15s' });
+      const lbl = { display:'block', fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:T.gray400, marginBottom:7 };
+      const price=89.99, commission=+(89.99*0.08).toFixed(2), ship=3.99;
+      const total=(price+commission+ship).toFixed(2).replace('.',',');
+      const f = n => n.toFixed(2).replace('.',',');
+
+      return (
+        <div>
+          <SiteHeader stepper={1} />
+          <div style={{ maxWidth:1040, margin:'0 auto', padding:'40px 32px', display:'grid', gridTemplateColumns:'1fr 360px', gap:28, alignItems:'start' }}>
+
+            {/* Left: Payment form */}
+            <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+              <Card>
+                <div style={{ fontSize:17, fontWeight:800, color:T.black, marginBottom:20 }}>Datos de la tarjeta</div>
+                <div style={{ marginBottom:16 }}>
+                  <label style={lbl}>Número de tarjeta</label>
+                  <div style={{ position:'relative' }}>
+                    <input value={card} placeholder="1234 5678 9012 3456" onChange={e=>setCard(fmtCard(e.target.value))} onFocus={()=>setFocus('card')} onBlur={()=>setFocus('')} style={{ ...inp('card'), paddingRight:46 }} />
+                    <span style={{ position:'absolute', right:14, top:'50%', transform:'translateY(-50%)' }}><Ic.card s={18} c={T.gray400}/></span>
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:14, marginBottom:16 }}>
+                  <div style={{ flex:1 }}><label style={lbl}>Vencimiento</label><input value={exp} placeholder="MM/AA" onChange={e=>setExp(fmtExp(e.target.value))} onFocus={()=>setFocus('exp')} onBlur={()=>setFocus('')} style={inp('exp')} /></div>
+                  <div style={{ flex:1 }}><label style={lbl}>CVV</label><input value={cvv} placeholder="•••" type="password" onChange={e=>setCvv(e.target.value.replace(/\D/g,'').slice(0,4))} onFocus={()=>setFocus('cvv')} onBlur={()=>setFocus('')} style={inp('cvv')} /></div>
+                </div>
+                <div><label style={lbl}>Titular de la tarjeta</label><input value={name} placeholder="Nombre completo" onChange={e=>setName(e.target.value)} onFocus={()=>setFocus('name')} onBlur={()=>setFocus('')} style={inp('name')} /></div>
+              </Card>
+
+              <div style={{ display:'flex', gap:12 }}>
+                <BtnPrimary label={`Pagar €${total}`} onClick={onSuccess} sx={{ flex:1, padding:16, fontSize:16 }} />
+                <BtnOutline label="Pago fallido →" onClick={onFail} sx={{ fontSize:13, color:T.gray400 }} />
+              </div>
+
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:20 }}>
+                {[['Ic.lock','Cifrado SSL'],['Ic.shield','Compra protegida'],['Ic.card','3D Secure']].map(([,t]) => (
+                  <div key={t} style={{ display:'flex', alignItems:'center', gap:5, fontSize:12, color:T.gray400, fontWeight:600 }}>
+                    <Ic.lock s={12} c={T.gray400}/>{t}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Order summary */}
+            <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+              <Card>
+                <div style={{ marginBottom:16, paddingBottom:16, borderBottom:`1px solid ${T.gray100}` }}>
+                  <ProductSummary />
+                </div>
+                <div style={{ fontSize:15, fontWeight:700, color:T.black, marginBottom:12 }}>Resumen del pedido</div>
+                <Row label="Precio artículo" value={`€${f(price)}`} />
+                <Row label="Comisión Fixter (8%)" value={`€${f(commission)}`} accent />
+                <Row label="Envío estimado" value={`€${f(ship)}`} />
+                <div style={{ display:'flex', justifyContent:'space-between', paddingTop:12, marginTop:4 }}>
+                  <span style={{ fontWeight:700, fontSize:16 }}>Total</span>
+                  <span style={{ fontWeight:800, fontSize:20 }}>€{total}</span>
+                </div>
+              </Card>
+              <Card sx={{ background:T.orange+'08', border:`1px solid ${T.orange}30` }}>
+                <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+                  <Ic.shield s={16} c={T.orange}/>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700, color:T.black, marginBottom:3 }}>Compra protegida por Fixter</div>
+                    <p style={{ fontSize:12, color:'#7A3000', lineHeight:1.6 }}>El importe queda retenido en escrow hasta que confirmes la recepción del artículo en perfectas condiciones.</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ═══ CONFIRMACIÓN ════════════════════════════════════════ */
+    function SuccessScreen({ onTrack }) {
+      return (
+        <div>
+          <SiteHeader stepper={2} />
+          <div style={{ maxWidth:640, margin:'60px auto', padding:'0 32px' }}>
+            <div style={{ textAlign:'center', marginBottom:36 }}>
+              <div style={{ width:80,height:80,borderRadius:'50%',background:T.orange,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px' }}>
+                <svg width="36" height="28" viewBox="0 0 36 28" fill="none"><path d="M2 14L13 25L34 3" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <h1 style={{ fontSize:28,fontWeight:800,color:T.black,marginBottom:8 }}>¡Pago realizado!</h1>
+              <p style={{ fontSize:15,color:T.gray500,lineHeight:1.7 }}>Tu pedido está confirmado y el importe queda retenido hasta que confirmes la recepción.</p>
+            </div>
+            <Card sx={{ marginBottom:20 }}>
+              {[['Nº de pedido','#FX-2847'],['Artículo','Pantalla LCD iPhone 13 Pro'],['Vendedor','@carlos_fix'],['Total pagado','€101,18']].map(([k,v],i,a) => (
+                <div key={k} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:i<a.length-1?`1px solid ${T.gray100}`:'none',fontSize:14 }}>
+                  <span style={{ color:T.gray500 }}>{k}</span><span style={{ fontWeight:700 }}>{v}</span>
+                </div>
+              ))}
+              <div style={{ marginTop:14,padding:'12px 14px',borderRadius:12,background:T.orange+'10',display:'flex',gap:10,alignItems:'center' }}>
+                <Ic.shield s={16} c={T.orange}/>
+                <span style={{ fontSize:13,color:'#7A3000',fontWeight:600 }}>€89,99 retenidos en escrow hasta que confirmes la recepción</span>
+              </div>
+            </Card>
+            <div style={{ display:'flex', gap:12 }}>
+              <BtnPrimary label="Ver seguimiento" onClick={onTrack} sx={{ flex:1 }} />
+              <BtnOutline label="Seguir comprando" onClick={()=>{}} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ═══ SEGUIMIENTO ══════════════════════════════════════════ */
+    const STEPS = [
+      {label:'Pedido confirmado',       sub:'Hoy, 10:23h',                            done:true},
+      {label:'Pago retenido en escrow', sub:'Hoy, 10:23h · Fixter protege tu compra', done:true},
+      {label:'En preparación',          sub:'Vendedor empaquetando el artículo',       done:true},
+      {label:'En tránsito',             sub:'ES123456789MX · Correos Express',         active:true},
+      {label:'Entregado',               sub:'Estimado: jueves 6 de junio',             done:false},
+    ];
+    function TrackingScreen({ onReceive, onBack }) {
+      const [copied,setCopied]=React.useState(false);
+      return (
+        <div>
+          <SiteHeader title="Seguimiento del pedido" onBack={onBack} />
+          <div style={{ maxWidth:800, margin:'40px auto', padding:'0 32px', display:'grid', gridTemplateColumns:'1fr 300px', gap:24, alignItems:'start' }}>
+            {/* Timeline */}
+            <Card>
+              <div style={{ fontSize:16,fontWeight:800,color:T.black,marginBottom:20 }}>Estado del envío</div>
+              {STEPS.map((step,i) => (
+                <div key={i} style={{ display:'flex',gap:14 }}>
+                  <div style={{ display:'flex',flexDirection:'column',alignItems:'center',width:24,flexShrink:0 }}>
+                    <div style={{ width:24,height:24,borderRadius:'50%',background:step.done?T.black:step.active?T.orange:T.gray200,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
+                      {step.done&&<span style={{ fontSize:10,color:'#fff',fontWeight:900 }}>✓</span>}
+                      {step.active&&<div style={{ width:9,height:9,borderRadius:'50%',background:'#fff' }} />}
+                    </div>
+                    {i<STEPS.length-1&&<div style={{ width:2,flex:1,minHeight:28,margin:'3px 0',background:step.done?T.black:T.gray200 }} />}
+                  </div>
+                  <div style={{ paddingBottom:i<STEPS.length-1?20:0,flex:1 }}>
+                    <div style={{ fontSize:14,fontWeight:step.active?700:600,color:step.active?T.orange:step.done?T.black:T.gray400 }}>{step.label}</div>
+                    <div style={{ fontSize:12,color:T.gray400,marginTop:3 }}>{step.sub}</div>
+                  </div>
+                </div>
+              ))}
+            </Card>
+            {/* Right sidebar */}
+            <div style={{ display:'flex',flexDirection:'column',gap:16 }}>
+              <Card>
+                <div style={{ fontSize:12,fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:T.gray400,marginBottom:10 }}>Artículo</div>
+                <ProductSummary />
+                <div style={{ marginTop:12 }}><Pill>En tránsito</Pill></div>
+              </Card>
+              <Card>
+                <div style={{ fontSize:12,fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:T.gray400,marginBottom:10 }}>Número de seguimiento</div>
+                <div style={{ fontSize:17,fontWeight:800,fontFamily:'monospace',letterSpacing:1.5,color:T.black,marginBottom:4 }}>ES123456789MX</div>
+                <div style={{ fontSize:13,color:T.gray400,marginBottom:12 }}>Correos Express</div>
+                <button onClick={()=>{setCopied(true);setTimeout(()=>setCopied(false),1500)}} style={{ background:copied?T.orange+'18':T.gray100,border:'none',borderRadius:8,padding:'8px 16px',fontSize:12,fontWeight:700,fontFamily:'inherit',color:copied?T.orange:T.black,transition:'all .2s',width:'100%' }}>{copied?'✓ Copiado':'Copiar número'}</button>
+              </Card>
+              <div style={{ background:T.orange+'14',borderRadius:14,padding:'12px 14px',display:'flex',gap:10,alignItems:'center' }}>
+                <Ic.truck s={18} c={T.orange}/><span style={{ fontSize:13,fontWeight:600,color:'#7A3000' }}>Entrega estimada: jue. 6 jun</span>
+              </div>
+              <BtnPrimary label="He recibido el pedido" onClick={onReceive} sx={{ width:'100%' }} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ═══ CONFIRMAR RECEPCIÓN ══════════════════════════════════ */
+    function ReceiveScreen({ onConfirm, onBack, onProblem }) {
+      const [state,setState]=React.useState('idle');
+      const confirm = () => { setState('loading'); setTimeout(()=>{setState('done');setTimeout(onConfirm,1000);},1200); };
+      return (
+        <div>
+          <SiteHeader title="Confirmar recepción" onBack={state==='idle'?onBack:undefined} />
+          <div style={{ maxWidth:580, margin:'60px auto', padding:'0 32px' }}>
+            <div style={{ textAlign:'center', marginBottom:32 }}>
+              <div style={{ width:76,height:76,borderRadius:'50%',background:state==='done'?T.green+'18':T.gray100,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',transition:'background .3s' }}>
+                {state==='done'?<Ic.checkCircle s={36} c={T.green}/>:<Ic.box s={34} c={T.gray400}/>}
+              </div>
+              <h2 style={{ fontSize:24,fontWeight:800,color:T.black,marginBottom:8 }}>{state==='done'?'¡Pago liberado!':'¿Has recibido tu pedido?'}</h2>
+              <p style={{ fontSize:14,color:T.gray500,lineHeight:1.7 }}>{state==='done'?'€89,99 han sido transferidos a @carlos_fix':'Revisa que el artículo esté en buen estado antes de confirmar.'}</p>
+            </div>
+            <Card sx={{ marginBottom:16 }}>
+              <div style={{ paddingBottom:14,marginBottom:14,borderBottom:`1px solid ${T.gray100}` }}><ProductSummary showPrice /></div>
+              {state==='idle'&&(
+                <div style={{ display:'flex',gap:10,alignItems:'flex-start',padding:'10px 12px',background:'#FFFBF5',borderRadius:10,border:`1px solid #FFD9B3` }}>
+                  <div style={{ marginTop:1 }}><Ic.warn s={15} c="#D97706"/></div>
+                  <p style={{ fontSize:13,color:'#7C3D0F',lineHeight:1.55,margin:0 }}>Al confirmar, <strong>€89,99 se liberarán al vendedor</strong>. Solo confirma si el artículo está en perfectas condiciones.</p>
+                </div>
+              )}
+              {state==='done'&&(
+                <div style={{ display:'flex',alignItems:'center',gap:10,padding:14,background:'#F0FFF8',borderRadius:10,border:`1px solid #A7F3D0` }}>
+                  <Ic.checkCircle s={20} c={T.green}/><span style={{ fontWeight:700,color:T.green }}>Transacción completada con éxito</span>
+                </div>
+              )}
+            </Card>
+            {state==='idle'&&(
+              <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
+                <BtnPrimary label="He recibido el pedido" onClick={confirm} sx={{ width:'100%',padding:16,fontSize:16 }} />
+                <div style={{ textAlign:'center' }}><BtnGhost label="Hay un problema con mi pedido" onClick={onProblem} color={T.red}/></div>
+              </div>
+            )}
+            {state==='loading'&&<div style={{ textAlign:'center',padding:20,fontSize:14,color:T.gray400,fontWeight:600 }}>Procesando…</div>}
+          </div>
+        </div>
+      );
+    }
+
+    /* ═══ PAGO FALLIDO ════════════════════════════════════════ */
+    const CAUSES = [
+      {icon:'card',        label:'Fondos insuficientes en la tarjeta'},
+      {icon:'alertCircle', label:'Número de tarjeta o CVV incorrectos'},
+      {icon:'ban',         label:'Tarjeta bloqueada o caducada'},
+      {icon:'bank',        label:'Límite de pago online superado'},
+    ];
+    function FailedScreen({ onRetry, onBack }) {
+      return (
+        <div>
+          <SiteHeader stepper={1} onBack={onBack} />
+          <div style={{ maxWidth:580, margin:'60px auto', padding:'0 32px' }}>
+            <div style={{ textAlign:'center', marginBottom:32 }}>
+              <div style={{ width:76,height:76,borderRadius:'50%',background:'#FEE2E2',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px' }}>
+                <svg width="30" height="30" viewBox="0 0 30 30" fill="none"><path d="M4 4L26 26M26 4L4 26" stroke={T.red} strokeWidth="3.5" strokeLinecap="round"/></svg>
+              </div>
+              <h2 style={{ fontSize:26,fontWeight:800,color:T.black,marginBottom:8 }}>Pago fallido</h2>
+              <p style={{ fontSize:14,color:T.gray500,marginBottom:10 }}>No hemos podido procesar tu pago.</p>
+              <code style={{ display:'inline-block',fontSize:12,background:T.gray100,color:T.gray500,padding:'5px 14px',borderRadius:20 }}>CARD_DECLINED</code>
+            </div>
+            <Card sx={{ marginBottom:20 }}>
+              <div style={{ fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:T.gray400,marginBottom:12 }}>Posibles causas</div>
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:8 }}>
+                {CAUSES.map(({icon,label}) => { const Icon=Ic[icon]; return (
+                  <div key={label} style={{ display:'flex',gap:10,alignItems:'center',padding:'10px 12px',background:T.gray50,borderRadius:10,fontSize:13,color:T.gray500 }}>
+                    <Icon s={15} c={T.gray400}/><span>{label}</span>
+                  </div>
+                );})}
+              </div>
+            </Card>
+            <div style={{ display:'flex', gap:12 }}>
+              <BtnPrimary label="Reintentar pago" onClick={onRetry} sx={{ flex:1 }} />
+              <BtnOutline label="Otro método de pago" onClick={()=>{}} />
+            </div>
+            <p style={{ textAlign:'center', marginTop:16, fontSize:13, color:T.gray400, lineHeight:1.6 }}>Si el problema persiste, <strong style={{ color:T.gray500 }}>ponte en contacto con tu banco</strong> — puede haber un bloqueo de seguridad en tu tarjeta.</p>
+          </div>
+        </div>
+      );
+    }
+
+    /* ═══ PROBLEMA — TIPO ══════════════════════════════════════ */
+    const PROBLEM_TYPES = [
+      {id:'not-received',label:'No he recibido el artículo',     icon:'truck'},
+      {id:'damaged',     label:'El artículo está dañado',         icon:'warn'},
+      {id:'wrong-item',  label:'No coincide con la descripción',  icon:'tag'},
+      {id:'incorrect',   label:'Artículo incorrecto enviado',      icon:'alertCircle'},
+      {id:'incomplete',  label:'Falta contenido en el paquete',   icon:'box'},
+      {id:'other',       label:'Otro problema',                    icon:'alertCircle'},
+    ];
+    function ProblemTypeScreen({ onNext, onBack }) {
+      const [selected,setSelected]=React.useState('');
+      return (
+        <div>
+          <SiteHeader title="Abrir reclamación" onBack={onBack} />
+          <div style={{ maxWidth:680, margin:'40px auto', padding:'0 32px' }}>
+            <h2 style={{ fontSize:22,fontWeight:800,color:T.black,marginBottom:8 }}>¿Qué ha ocurrido?</h2>
+            <p style={{ fontSize:14,color:T.gray500,marginBottom:24,lineHeight:1.6 }}>Selecciona el motivo para iniciar la reclamación. El pago permanecerá retenido hasta que se resuelva.</p>
+            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:24 }}>
+              {PROBLEM_TYPES.map(pt => {
+                const Icon=Ic[pt.icon], active=selected===pt.id;
+                return (
+                  <button key={pt.id} onClick={()=>setSelected(pt.id)} style={{ display:'flex',gap:12,alignItems:'center',padding:'14px 16px',borderRadius:14,border:`1.5px solid ${active?T.orange:T.gray200}`,background:active?T.orange+'06':'#fff',cursor:'pointer',textAlign:'left',fontFamily:'inherit',transition:'all .15s' }}>
+                    <div style={{ width:36,height:36,borderRadius:10,background:active?T.orange+'18':T.gray100,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center' }}><Icon s={17} c={active?T.orange:T.gray400}/></div>
+                    <span style={{ fontSize:13,fontWeight:active?700:500,color:active?T.orange:T.black,lineHeight:1.4 }}>{pt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <BtnPrimary label="Continuar" onClick={()=>selected&&onNext(selected)} sx={{ opacity:selected?1:0.35 }} />
+          </div>
+        </div>
+      );
+    }
+
+    /* ═══ PROBLEMA — FORMULARIO ════════════════════════════════ */
+    function ProblemFormScreen({ problemType, onSend, onBack }) {
+      const [desc,setDesc]=React.useState(''), [hasPhoto,setHasPhoto]=React.useState(false);
+      const typeLabel=PROBLEM_TYPES.find(p=>p.id===problemType)?.label||'';
+      return (
+        <div>
+          <SiteHeader title="Describe el problema" onBack={onBack} />
+          <div style={{ maxWidth:900, margin:'40px auto', padding:'0 32px', display:'grid', gridTemplateColumns:'1fr 320px', gap:28, alignItems:'start' }}>
+            {/* Left: form */}
+            <div style={{ display:'flex',flexDirection:'column',gap:20 }}>
+              <div style={{ display:'inline-flex',alignItems:'center',gap:8,background:T.orange+'10',borderRadius:10,padding:'10px 14px',alignSelf:'flex-start' }}>
+                <Ic.alertCircle s={14} c={T.orange}/><span style={{ fontSize:13,fontWeight:600,color:T.orange }}>{typeLabel}</span>
+              </div>
+              <Card>
+                <div style={{ fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:T.gray400,marginBottom:10 }}>Fotos del problema</div>
+                <button onClick={()=>setHasPhoto(true)} style={{ width:'100%',height:120,borderRadius:12,border:`1.5px dashed ${hasPhoto?T.green:T.gray200}`,background:hasPhoto?T.green+'08':T.gray50,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,cursor:'pointer',fontFamily:'inherit',transition:'all .2s' }}>
+                  {hasPhoto?<><Ic.checkCircle s={24} c={T.green}/><span style={{ fontSize:13,fontWeight:700,color:T.green }}>Foto añadida correctamente</span></>:<><Ic.camera s={26} c={T.gray400}/><span style={{ fontSize:13,fontWeight:600,color:T.gray400 }}>Haz clic o arrastra una imagen</span><span style={{ fontSize:12,color:T.gray400 }}>JPG, PNG o HEIC · Máx. 10 MB</span></>}
+                </button>
+              </Card>
+              <Card>
+                <div style={{ fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:T.gray400,marginBottom:10 }}>Descripción detallada</div>
+                <textarea value={desc} onChange={e=>setDesc(e.target.value.slice(0,500))} placeholder="Describe con detalle qué ha ocurrido y el estado en que has recibido el artículo…" rows={5} style={{ width:'100%',padding:'13px 14px',borderRadius:10,border:`1.5px solid ${desc.length>0?T.orange:T.gray200}`,fontSize:14,fontFamily:'inherit',color:T.black,background:T.gray50,resize:'vertical',lineHeight:1.6,transition:'border-color .15s' }} />
+                <div style={{ textAlign:'right',fontSize:12,color:T.gray400,marginTop:6 }}>{desc.length}/500</div>
+              </Card>
+              <BtnPrimary label="Enviar reclamación" onClick={onSend} sx={{ opacity:desc.trim().length>10?1:0.35 }} />
+            </div>
+            {/* Right: sidebar */}
+            <div style={{ display:'flex',flexDirection:'column',gap:16 }}>
+              <Card>
+                <div style={{ fontSize:12,fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:T.gray400,marginBottom:12 }}>Artículo reclamado</div>
+                <ProductSummary showPrice />
+                <div style={{ marginTop:10,paddingTop:10,borderTop:`1px solid ${T.gray100}`,fontSize:13,color:T.gray500 }}>Pedido <strong style={{ color:T.black }}>#FX-2847</strong></div>
+              </Card>
+              <Card sx={{ background:T.gray50 }}>
+                <div style={{ display:'flex',gap:10,alignItems:'flex-start' }}>
+                  <Ic.lock s={14} c={T.gray400}/>
+                  <p style={{ fontSize:12,color:T.gray500,lineHeight:1.6,margin:0 }}>El pago permanecerá retenido hasta la resolución. El equipo de soporte te responderá en menos de 48h.</p>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ═══ RECLAMACIÓN ENVIADA ══════════════════════════════════ */
+    function ProblemSentScreen({ onBack }) {
+      return (
+        <div>
+          <SiteHeader title="Reclamación enviada" />
+          <div style={{ maxWidth:580, margin:'60px auto', padding:'0 32px' }}>
+            <div style={{ textAlign:'center', marginBottom:36 }}>
+              <div style={{ width:80,height:80,borderRadius:'50%',background:'#FFF3E0',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px' }}>
+                <Ic.shield s={36} c={T.orange}/>
+              </div>
+              <h2 style={{ fontSize:26,fontWeight:800,color:T.black,marginBottom:10 }}>Reclamación enviada</h2>
+              <p style={{ fontSize:15,color:T.gray500,lineHeight:1.7 }}>Nuestro equipo revisará tu caso y te contactará en menos de 48h. El pago permanece retenido hasta la resolución.</p>
+            </div>
+            <Card sx={{ marginBottom:20 }}>
+              {[['Nº de reclamación','#REC-1042'],['Pedido','#FX-2847'],['Estado','En revisión por soporte'],['Respuesta estimada','Antes del 6 de junio']].map(([k,v],i,a)=>(
+                <div key={k} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:i<a.length-1?`1px solid ${T.gray100}`:'none',fontSize:14 }}>
+                  <span style={{ color:T.gray500 }}>{k}</span>
+                  <span style={{ fontWeight:700,color:k==='Estado'?T.orange:T.black }}>{v}</span>
+                </div>
+              ))}
+            </Card>
+            <BtnOutline label="Volver a mis pedidos" onClick={onBack} sx={{ width:'100%' }} />
+          </div>
+        </div>
+      );
+    }
+
+    /* ═══ VISTA VENDEDOR ══════════════════════════════════════ */
+    const CARRIERS = ['Correos','Correos Express','SEUR','MRW','DHL','GLS'];
+    function SellerScreen() {
+      const [tracking,setTracking]=React.useState(''), [carrier,setCarrier]=React.useState('Correos Express'), [sent,setSent]=React.useState(false);
+      const lbl = { display:'block',fontSize:11,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:T.gray400,marginBottom:8 };
+      return (
+        <div>
+          <SiteHeader title="Vista vendedor" />
+          <div style={{ maxWidth:1040, margin:'32px auto', padding:'0 32px', display:'flex', flexDirection:'column', gap:20 }}>
+            {/* Stats */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16 }}>
+              {[{label:'Valoración media',value:'4.9'},{label:'Ventas totales',value:'82'},{label:'En curso',value:'3'},{label:'Recibirás',value:'€82,79'}].map(s=>(
+                <Card key={s.label} sx={{ textAlign:'center',padding:20 }}>
+                  <div style={{ fontSize:24,fontWeight:800,color:T.black,marginBottom:4 }}>{s.value}</div>
+                  <div style={{ fontSize:12,color:T.gray400 }}>{s.label}</div>
+                </Card>
+              ))}
+            </div>
+
+            {/* Main content grid */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 400px', gap:20, alignItems:'start' }}>
+              {/* Left: sale item + payment */}
+              <div style={{ display:'flex',flexDirection:'column',gap:16 }}>
+                <Card>
+                  <div style={{ fontSize:15,fontWeight:800,color:T.black,marginBottom:16 }}>Venta activa</div>
+                  <div style={{ display:'flex',gap:14,alignItems:'center',paddingBottom:16,marginBottom:16,borderBottom:`1px solid ${T.gray100}` }}>
+                    <div style={{ width:60,height:60,borderRadius:12,background:T.gray100,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center' }}><Ic.phone s={26} c={T.gray400}/></div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:15,fontWeight:700,color:T.black }}>Pantalla LCD iPhone 13 Pro</div>
+                      <div style={{ fontSize:13,color:T.gray400,marginTop:2 }}>Comprador: @maria_reparaciones · Pedido #FX-2847</div>
+                      <div style={{ marginTop:8 }}><Pill color={sent?T.green:T.orange}>{sent?'Enviado':'Pendiente de envío'}</Pill></div>
+                    </div>
+                  </div>
+                  <Row label="Precio de venta" value="€89,99" />
+                  <Row label="Comisión Fixter (8%)" value="−€7,20" accent />
+                  <div style={{ display:'flex',justifyContent:'space-between',paddingTop:12,marginTop:4 }}>
+                    <span style={{ fontWeight:700,fontSize:16 }}>Recibirás</span>
+                    <span style={{ fontWeight:800,fontSize:20 }}>€82,79</span>
+                  </div>
+                  <div style={{ marginTop:14,padding:'12px 14px',borderRadius:12,background:T.orange+'10',display:'flex',gap:10,alignItems:'center' }}>
+                    <Ic.shield s={15} c={T.orange}/>
+                    <span style={{ fontSize:13,color:'#7A3000',fontWeight:600 }}>{sent?'Esperando confirmación de recepción del comprador':'Importe retenido hasta que el comprador confirme la recepción'}</span>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Right: tracking */}
+              <Card>
+                {!sent ? (
+                  <>
+                    <div style={{ fontSize:15,fontWeight:800,color:T.black,marginBottom:6 }}>Añadir número de seguimiento</div>
+                    <p style={{ fontSize:13,color:T.gray500,marginBottom:18,lineHeight:1.6 }}>Una vez enviado el paquete, añade el número de seguimiento para que el comprador pueda rastrearlo.</p>
+                    <label style={lbl}>Transportista</label>
+                    <div style={{ display:'flex',gap:6,flexWrap:'wrap',marginBottom:16 }}>
+                      {CARRIERS.map(c=>(
+                        <button key={c} onClick={()=>setCarrier(c)} style={{ padding:'6px 13px',borderRadius:20,border:`1.5px solid ${carrier===c?T.orange:T.gray200}`,background:carrier===c?T.orange+'10':'#fff',fontSize:12,fontWeight:carrier===c?700:500,color:carrier===c?T.orange:T.gray500,cursor:'pointer',fontFamily:'inherit',transition:'all .15s' }}>{c}</button>
+                      ))}
+                    </div>
+                    <label style={lbl}>Número de seguimiento</label>
+                    <input value={tracking} onChange={e=>setTracking(e.target.value.toUpperCase())} placeholder="Ej. ES123456789MX" style={{ width:'100%',padding:'13px 14px',borderRadius:10,border:`1.5px solid ${tracking.length>0?T.orange:T.gray200}`,fontSize:14,fontFamily:'monospace',color:T.black,background:T.gray50,letterSpacing:1,marginBottom:16,transition:'border-color .15s' }} />
+                    <BtnPrimary label="Confirmar envío" onClick={()=>tracking.length>5&&setSent(true)} sx={{ width:'100%',opacity:tracking.length>5?1:0.35 }} />
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize:15,fontWeight:800,color:T.black,marginBottom:14 }}>Envío registrado</div>
+                    <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20 }}>
+                      <div>
+                        <div style={{ fontSize:18,fontWeight:800,fontFamily:'monospace',letterSpacing:1.5,color:T.black }}>{tracking}</div>
+                        <div style={{ fontSize:13,color:T.gray400,marginTop:3 }}>{carrier}</div>
+                      </div>
+                      <Pill color={T.green}>Enviado</Pill>
+                    </div>
+                    {[{done:true,label:'Tracking enviado al comprador'},{active:true,label:'Esperando confirmación de recepción'},{label:'Pago liberado en tu cuenta'}].map((s,i,a)=>(
+                      <div key={i} style={{ display:'flex',gap:12,alignItems:'flex-start' }}>
+                        <div style={{ display:'flex',flexDirection:'column',alignItems:'center',width:22,flexShrink:0 }}>
+                          <div style={{ width:22,height:22,borderRadius:'50%',background:s.done?T.black:s.active?T.orange:T.gray200,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
+                            {s.done&&<span style={{ fontSize:10,color:'#fff',fontWeight:900 }}>✓</span>}
+                            {s.active&&<div style={{ width:8,height:8,borderRadius:'50%',background:'#fff' }} />}
+                          </div>
+                          {i<a.length-1&&<div style={{ width:2,minHeight:20,flex:1,margin:'2px 0',background:s.done?T.black:T.gray200 }} />}
+                        </div>
+                        <div style={{ paddingBottom:i<a.length-1?16:0 }}>
+                          <span style={{ fontSize:13,fontWeight:s.active?700:600,color:s.active?T.orange:s.done?T.black:T.gray400 }}>{s.label}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </Card>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ═══ APP SHELL ══════════════════════════════════════════ */
+    const BUYER_SCREENS  = [{id:'checkout',label:'Checkout'},{id:'success',label:'Confirmado'},{id:'tracking',label:'Seguimiento'},{id:'receive',label:'Recepción'},{id:'failed',label:'Fallido'}];
+    const CLAIM_SCREENS  = [{id:'problem-type',label:'Problema'},{id:'problem-form',label:'Formulario'},{id:'problem-sent',label:'Enviada'}];
+    const SELLER_SCREENS = [{id:'seller',label:'Vendedor'}];
+    const ALL_SCREENS    = [...BUYER_SCREENS,...CLAIM_SCREENS,...SELLER_SCREENS];
+
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "screen": "failed"
+    }/*EDITMODE-END*/;
+
+    function App() {
+      const [t,setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const [problemType,setProblemType] = React.useState('not-received');
+      const go = id => setTweak('screen',id);
+      const screen = t.screen||'checkout';
+
+      const renderScreen = () => {
+        switch(screen) {
+          case 'checkout':     return <CheckoutScreen onSuccess={()=>go('success')} onFail={()=>go('failed')} />;
+          case 'success':      return <SuccessScreen  onTrack={()=>go('tracking')} />;
+          case 'tracking':     return <TrackingScreen onReceive={()=>go('receive')} onBack={()=>go('success')} />;
+          case 'receive':      return <ReceiveScreen  onConfirm={()=>go('success')} onBack={()=>go('tracking')} onProblem={()=>go('problem-type')} />;
+          case 'failed':       return <FailedScreen   onRetry={()=>go('checkout')} onBack={()=>go('checkout')} />;
+          case 'problem-type': return <ProblemTypeScreen onNext={tp=>{setProblemType(tp);go('problem-form');}} onBack={()=>go('receive')} />;
+          case 'problem-form': return <ProblemFormScreen problemType={problemType} onSend={()=>go('problem-sent')} onBack={()=>go('problem-type')} />;
+          case 'problem-sent': return <ProblemSentScreen onBack={()=>go('receive')} />;
+          case 'seller':       return <SellerScreen />;
+          default:             return <CheckoutScreen onSuccess={()=>go('success')} onFail={()=>go('failed')} />;
+        }
+      };
+
+      const NavGroup = ({screens,label}) => (
+        <div style={{ display:'flex',alignItems:'center',gap:3 }}>
+          <span style={{ fontSize:9,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(255,255,255,0.25)',marginRight:2 }}>{label}</span>
+          {screens.map(s => (
+            <button key={s.id} onClick={()=>go(s.id)} style={{ background:screen===s.id?T.orange:'transparent',color:screen===s.id?'#fff':'rgba(255,255,255,0.4)',border:'none',borderRadius:20,padding:'5px 13px',fontSize:11,fontWeight:700,fontFamily:'inherit',whiteSpace:'nowrap',transition:'all .15s',cursor:'pointer' }}>{s.label}</button>
+          ))}
+        </div>
+      );
+
+      return (
+        <div style={{ fontFamily:"'Plus Jakarta Sans', sans-serif" }}>
+          {/* Prototype nav bar */}
+          <div style={{ position:'fixed',top:0,left:0,right:0,zIndex:9999,background:'rgba(12,12,12,0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'7px 24px',display:'flex',alignItems:'center',gap:12 }}>
+            <NavGroup screens={BUYER_SCREENS} label="Comprador" />
+            <div style={{ width:1,height:16,background:'rgba(255,255,255,0.12)' }} />
+            <NavGroup screens={CLAIM_SCREENS} label="Reclamación" />
+            <div style={{ width:1,height:16,background:'rgba(255,255,255,0.12)' }} />
+            <NavGroup screens={SELLER_SCREENS} label="Vendedor" />
+          </div>
+
+          {/* Content (push down past nav bar) */}
+          <div style={{ paddingTop:40, paddingBottom:80 }}>
+            {renderScreen()}
+          </div>
+
+          <TweaksPanel>
+            <TweakSection label="Pantalla" />
+            <TweakSelect label="Ir a pantalla" value={screen} options={ALL_SCREENS.map(s=>s.id)} onChange={id=>go(id)} />
+          </TweaksPanel>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { StarRating } from "@/components/profile/star-rating";
@@ -174,19 +175,18 @@ export default function ProfilePageClient({
 
   const avatarSection = (
     <div className="group relative shrink-0">
-      {/* Image / initials */}
-      <div className="relative h-28 w-28 overflow-hidden rounded-full ring-4 ring-zinc-100 sm:h-32 sm:w-32">
+      <div className="relative h-24 w-24 overflow-hidden rounded-full ring-2 ring-zinc-200 sm:h-28 sm:w-28">
         {profile.avatar_url ? (
           <Image
             src={profile.avatar_url}
             alt={profile.username}
             fill
             className="object-cover"
-            sizes="128px"
+            sizes="112px"
             unoptimized
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-3xl font-bold text-zinc-500">
+          <div className="flex h-full w-full items-center justify-center bg-[#FF6B2B] text-3xl font-bold text-white">
             {initial}
           </div>
         )}
@@ -196,7 +196,7 @@ export default function ProfilePageClient({
       {isOwner && (
         <label
           htmlFor="owner-avatar-input"
-          className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity group-hover:opacity-100"
+          className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100"
           title="Cambiar foto de perfil"
         >
           {avatarUploading ? (
@@ -314,9 +314,10 @@ export default function ProfilePageClient({
 
               /* ── VIEW MODE ────────────────────────────────────────────── */
               <div className="space-y-3">
+                {/* Name row + edit button */}
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
+                    <h1 className="text-3xl font-bold tracking-tight text-zinc-950 sm:text-4xl">
                       {displayName}
                     </h1>
                     {profile.full_name && (
@@ -326,12 +327,11 @@ export default function ProfilePageClient({
                     )}
                   </div>
 
-                  {/* Edit button — owner only */}
                   {isOwner && (
                     <button
                       type="button"
                       onClick={enterEditMode}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-1.5 text-sm font-medium text-zinc-500 transition-colors duration-150 hover:bg-zinc-50 hover:text-zinc-700"
                     >
                       <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -342,34 +342,44 @@ export default function ProfilePageClient({
                   )}
                 </div>
 
+                {/* Bio */}
                 {profile.bio && (
                   <p className="text-sm leading-relaxed text-zinc-600 sm:text-base">
                     {profile.bio}
                   </p>
                 )}
 
-                <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-zinc-500 sm:justify-start">
+                {/* Metadata row */}
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-zinc-500 sm:justify-start">
                   {profile.location && (
-                    <>
-                      <span className="flex items-center gap-1">
-                        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-                          <circle cx="12" cy="9" r="2.5" />
-                        </svg>
-                        {profile.location}
-                      </span>
-                      <span aria-hidden="true" className="text-zinc-300">·</span>
-                    </>
+                    <span className="flex items-center gap-1.5">
+                      <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                        <circle cx="12" cy="9" r="2.5" />
+                      </svg>
+                      {profile.location}
+                    </span>
                   )}
-                  <span>Miembro desde {formatMemberSince(profile.created_at)}</span>
+                  <span className="flex items-center gap-1.5">
+                    <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="18" rx="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                    Miembro desde {formatMemberSince(profile.created_at)}
+                  </span>
+                  {activeListingsCount > 0 && (
+                    <span>
+                      {activeListingsCount}{" "}
+                      {activeListingsCount === 1 ? "anuncio activo" : "anuncios activos"}
+                    </span>
+                  )}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
+                {/* Star rating */}
+                <div className="flex justify-center sm:justify-start">
                   <StarRating rating={reviews.avg} count={reviews.count} />
-                  <span className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-700">
-                    {activeListingsCount}{" "}
-                    {activeListingsCount === 1 ? "anuncio activo" : "anuncios activos"}
-                  </span>
                 </div>
 
                 {error && (
@@ -385,18 +395,34 @@ export default function ProfilePageClient({
 
       {/* ── LISTINGS SECTION ──────────────────────────────────────────────── */}
       <section>
-        <h2 className="text-lg font-semibold tracking-tight text-zinc-900 sm:text-xl">
-          Anuncios de {displayName}
+        <h2 className="text-lg font-semibold tracking-tight text-zinc-900">
+          {activeListingsCount === 0
+            ? "Anuncios"
+            : activeListingsCount === 1
+              ? "1 anuncio activo"
+              : `${activeListingsCount} anuncios activos`}
         </h2>
 
         {activeListingsCount === 0 ? (
-          <p className="mt-8 rounded-xl border border-dashed border-zinc-300 bg-white px-6 py-12 text-center text-sm text-zinc-500">
-            {isOwner
-              ? "Todavía no has publicado ningún anuncio."
-              : "Este vendedor no tiene anuncios activos."}
-          </p>
+          isOwner ? (
+            <div className="mt-6 rounded-xl border border-dashed border-zinc-300 bg-white px-6 py-12 text-center">
+              <p className="text-sm text-zinc-500">
+                Todavía no has publicado ningún anuncio.
+              </p>
+              <Link
+                href="/publish"
+                className="mt-4 inline-flex items-center rounded-xl bg-[#FF6B2B] px-5 py-2.5 text-sm font-semibold text-white transition-[opacity,transform] duration-200 ease-out hover:opacity-90 active:scale-[0.97]"
+              >
+                Publicar tu primer anuncio
+              </Link>
+            </div>
+          ) : (
+            <p className="mt-6 rounded-xl border border-dashed border-zinc-300 bg-white px-6 py-12 text-center text-sm text-zinc-500">
+              Este vendedor no tiene anuncios activos.
+            </p>
+          )
         ) : (
-          <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
+          <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
             {children}
           </ul>
         )}

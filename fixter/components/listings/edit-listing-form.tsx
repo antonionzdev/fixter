@@ -227,13 +227,28 @@ export default function EditListingForm({ listing }: EditListingFormProps) {
       return;
     }
 
+    // Validate new images before upload
+    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+    for (const file of newImageFiles) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setFormError("Solo se permiten imágenes JPG, PNG, WEBP o GIF.");
+        setSubmitting(false);
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        setFormError("Cada imagen debe pesar menos de 10 MB.");
+        setSubmitting(false);
+        return;
+      }
+    }
+
     // Upload new images
     const newImageUrls: string[] = [];
     const uploadedPaths: string[] = [];
 
     for (const file of newImageFiles) {
-      const safeName = `${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
-      const uploadPath = `${user.id}/${safeName}`;
+      const uploadPath = `${user.id}/${crypto.randomUUID()}`;
 
       const { error: uploadError } = await supabase.storage
         .from("listing-images")
@@ -494,7 +509,9 @@ export default function EditListingForm({ listing }: EditListingFormProps) {
             htmlFor="edit-images"
             className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50 px-6 py-8 text-center transition hover:border-sky-400 hover:bg-sky-50"
           >
-            <span className="text-2xl">📎</span>
+            <svg className="h-7 w-7 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+            </svg>
             <span className="text-sm font-medium text-zinc-700">
               Haz clic para añadir fotos
             </span>
