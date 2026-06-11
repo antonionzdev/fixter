@@ -3,7 +3,7 @@ import { createServiceSupabase } from '@/lib/supabase-service'
 import { getStripe } from '@/lib/stripe'
 import Stripe from 'stripe'
 
-export const config = { api: { bodyParser: false } }
+
 
 export async function POST(req: NextRequest) {
   const stripe = getStripe()
